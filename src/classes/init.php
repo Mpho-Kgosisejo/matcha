@@ -1,5 +1,6 @@
 <?php
-    require 'class.database.php';
-    require 'class.user.php';
-    require 'class.hash.php';
+    require 'Config.php';
+    require 'Database.php';
+    require 'User.php';
+    require 'Hash.php';
 ?>

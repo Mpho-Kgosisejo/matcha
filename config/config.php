@@ -1,10 +1,15 @@
 <?php
     $GLOBALS['api_config'] = array(
         'server' => array(
-            'HOST' => 'localhost',
-            'DB_USER' => 'root',
-            'DB_PASSWORD' => '123456',
-            'DB' => 'matcha'
+            'host' => 'localhost',
+            'db_user' => 'root',
+            'db_password' => '',
+            'db_name' => 'matcha'
+        ),
+        'app' => array(
+            'name' => 'Matcha',
+            'salt' => '8cd8aa091d721adbdc',
+            'author' => 'Mpho Kgosisejo'
         ),
         'paths' => array(),
         'response_format' => array(

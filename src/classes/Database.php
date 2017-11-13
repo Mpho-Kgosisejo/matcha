@@ -4,19 +4,17 @@
 
         public function __construct(){
             $globs = $GLOBALS['api_config']['server'];
-            $HOST = $globs['HOST'];
-            $DB_DSN = $globs['DB'];
-            $DB_USER = $globs['DB_USER'];
-            $DB_PASSWORD = $globs['DB_PASSWORD'];
+            $HOST = Config::get('server/host');
+            $DB_DSN = Config::get('server/db_name');
+            $DB_USER = Config::get('server/db_user');
+            $DB_PASSWORD =  Config::get('server/db_password');
 
             if (!isset(self::$conn)){
                 try{
                     self::$conn = new PDO("mysql:host=". $HOST .";dbname=". $DB_DSN, $DB_USER, $DB_PASSWORD);
                     self::$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 }catch(PDOException $exc){
-                    //echo 'DB Error: '.$exc->getMessage();
-                    //die($exc->getMessage());
-                    throw new Exception ("-{ Could not connect to database }-");
+                    throw new Exception ("Could not connect to database");
                 }
             }
         }
@@ -40,7 +38,7 @@
         }
 
         public function select($table, $where = array(), $filter = null){
-            $query = "SELECT * FROM `$table`";
+            $query = "SELECT * FROM $table";
 
             if (!empty($where))
                 $query = $query . self::_build_where($where);

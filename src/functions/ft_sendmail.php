@@ -4,6 +4,10 @@
         $headers[] = 'Content-type: text/html; charset=iso-8859-1';
         $headers = implode("\r\n", $headers);
 
-        return (mail($to, $subject, $message, $headers));
+        try{
+            if (mail($to, $subject, $message, $headers))
+                return (true);
+        }catch(Exception $exc){}
+        return (false);
     }
 ?>
