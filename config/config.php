@@ -3,11 +3,13 @@
         'server' => array(
             'host' => 'localhost',
             'db_user' => 'root',
-            'db_password' => '',
+            'db_password' => '123456',
             'db_name' => 'matcha'
         ),
         'app' => array(
             'name' => 'Matcha',
+            'email' => '',
+            'email_password' => '',
             'salt' => '8cd8aa091d721adbdc',
             'author' => 'Mpho Kgosisejo'
         ),

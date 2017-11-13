@@ -2,6 +2,8 @@
     use \Psr\Http\Message\ServerRequestInterface as Request;
     use \Psr\Http\Message\ResponseInterface as Response;
     
+    
+
     require '../vendor/autoload.php';
 
     require '../config/config.php';
@@ -12,9 +14,9 @@
     $app->get('/test', function (Request $request, Response $response) {
         try{
             
-            $res = User::login('mkgosise', 'password');
+            $res = User::login('kaygo', '123456');
             echo json_encode($res);
-
+            
             //print_r(Config::get('response_format/response/state'));
             //print_r(Config::response(Config::response(), 'response/state', 'kjkjk'));
         }catch(Exception $exc){

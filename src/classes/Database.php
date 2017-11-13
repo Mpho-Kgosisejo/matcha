@@ -32,13 +32,13 @@
                 $stmt->execute();
                 return ($stmt);
             }catch(Exception $exc){
-                //echo $exc->getMessage();
+                ft_put_error($exc->getMessage());
             }
             return (false);
         }
 
-        public function select($table, $where = array(), $filter = null){
-            $query = "SELECT * FROM $table";
+        public function select($table, $where = array(), $filter = null, $ret_obj = null){
+            $query = "SELECT * FROM `$table`";
 
             if (!empty($where))
                 $query = $query . self::_build_where($where);
@@ -51,9 +51,17 @@
                 if (!empty($where))
                     self::_bind_where($stmt, $where);
                 $stmt->execute();
+
+                if (isset($ret_obj)){
+                    if ($ret_obj == true){
+                        $data['rows'] = self::getRows($stmt, 0);
+                        $data['rowCount'] = self::getCount($stmt);
+                        return ((object)$data);
+                    }
+                }
                 return ($stmt);
             }catch(Exception $exc){
-                //echo $exc->getMessage();
+                ft_put_error($exc->getMessage());
             }
             return (false);
         }
@@ -92,7 +100,7 @@
                 $stmt->execute();
                 return ($stmt);
             }catch(Exception $exc){
-                //echo $exc->getMessage();
+                ft_put_error($exc->getMessage());
             }
             return (false);
         }
@@ -118,7 +126,7 @@
                 $stmt->execute();
                 return ($stmt);
             }catch(Exception $exc){
-                echo $exc->getMessage();
+                ft_put_error($exc->getMessage());
             }
             return (false);
         }
@@ -137,7 +145,7 @@
                 $stmt->execute();
                 return ($stmt);
             }catch(Exception $exc){
-                //echo $exc->getMessage();
+                ft_put_error($exc->getMessage());
             }
             return (false);
         }

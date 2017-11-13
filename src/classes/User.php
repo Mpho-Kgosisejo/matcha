@@ -13,10 +13,12 @@
             $target_value = $target[$target_key];
             $session = null;
 
-            if ($target_key !== 'id' && $target_key !== 'token' && empty($target_value))
+            if ($target_key !== 'id' && $target_key !== 'token')
+                return (array());
+            if (empty($target_value))
                 return (array());
             if ($target_key === 'token'){
-                if (($stmt = parent::select('tbl_login_session', array('token', '=', $target_value)))){
+                if (($stmt = parent::select('tbl_login_session', array('session', '=', $target_value)))){
                     if (parent::getCount($stmt) == 1){
                         $session = parent::getRows($stmt)[0];
                     }
@@ -31,10 +33,9 @@
                     $_data = parent::getRows($stmt, 0)[0];
 
                     if ($session){
-                        $_data['session'] = $session->token;
+                        $_data['session'] = $session->session;
                     }
-                    unset($_data['salt']);
-                    
+
                     $res = Config::response($res, 'response/state', 'true');
                     $res = Config::response($res, 'response/message', 'success');
                     $res = Config::response($res, 'data', $_data);
@@ -66,7 +67,7 @@
                             if (!parent::getCount($stmt)){
                                 $input = array(
                                     'user_id' => $user->id,
-                                    'token' => $token
+                                    'session' => $token
                                 );
 
                                 if ((!parent::insert('tbl_login_session', $input)))
@@ -76,7 +77,7 @@
                                 $where = array('user_id' ,'=', $user->id);
                                 $input = array(
                                     'user_id' => $user->id,
-                                    'token' => $token
+                                    'session' => $token
                                 );
 
                                 if ((!parent::update('tbl_login_session', $input, $where)))
@@ -125,20 +126,21 @@
             }
 
             $token = Hash::unique_key();
-
-            /*if (!ft_sendmail('', '', '')){
+            
+            /*if (!ft_sendmail($email, ucwords($fn . ' ' . $ln), Config::get('app/name') . " - Registration Confirmation", ft_ms_register($token))){
                 return (Config::response($res, 'response/message', 'could not email registration confirmation, please try again'));
             }*/
 
             $salt = Hash::salt(15);
+            
             $input = array(
                 'username' => strtolower($username),
                 'email' => strtolower($email),
                 'password' => Hash::make($password, $salt),
-                'firstname' => $fn,
-                'lastname' => $ln,
+                'firstname' => ucwords($fn),
+                'lastname' => ucwords($ln),
                 'salt' => $salt,
-                'token' =>$token
+                'token' => $token
             );
 
             if ((parent::insert('tbl_user_registrations', $input))){
@@ -147,6 +149,96 @@
                 return ($res);
             }
             return (Config::response($res, 'response/message', 'Could not register you at this time, please wait 5 minutes or so and try again.'));
+        }
+
+        public function logout($session){
+            $res = Config::get('response_format');
+            new Database();
+
+            $where = array('session', '=', $session);
+            if (($stmt = parent::select('tbl_login_session', $where))){
+                if (parent::getCount($stmt) > 0){
+                    if (parent::delete('tbl_login_session', $where)){
+                        $res = Config::response($res, 'response/state', 'true');
+                        $res = Config::response($res, 'response/message', 'logout success');
+                        return ($res);
+                    }
+                }else
+                    return (Config::response($res, 'response/message', 'Login session was not found'));
+            }
+            return (Config::response($res, 'response/message', 'Could not log you out'));
+        }
+
+        public function is_logged($session){
+            $res = Config::get('response_format');
+            new Database();
+
+            $where = array('session', '=', $session);
+            if (($stmt = parent::select('tbl_login_session', $where))){
+                if (parent::getCount($stmt) > 0){
+                    $res = Config::response($res, 'response/state', 'true');
+                    $res = Config::response($res, 'response/message', 'Logged in');
+                    return ($res);
+                }else
+                    return (Config::response($res, 'response/message', 'Not logged in'));
+            }
+            return (Config::response($res, 'response/message', 'Could not check if you logged in'));
+        }
+
+        public function changepassword($username, $old_pass, $new_pass){
+            $res = Config::get('response_format');
+            new Database();
+
+            $where = array('username', '=', $username);
+            if (($data = parent::select('tbl_users', $where, null, true))){
+                if ($data->rowCount > 0){
+                    $user = (object)$data->rows[0];
+                    
+                    if (Hash::make($old_pass, $user->salt) === $user->password){
+                        $salt = Hash::salt(15);
+                        $input = array(
+                            'password' => Hash::make($new_pass, $salt),
+                            'salt' => $salt
+                        );
+
+                        if (parent::update('tbl_users', $input, $where)){
+                            $res = Config::response($res, 'response/state', 'true');
+                            $res = Config::response($res, 'response/message', 'Password changed successfully');
+                            return ($res);
+                        }
+                    }else
+                        return (Config::response($res, 'response/message', 'Passwords do not match'));
+                }else
+                    return (Config::response($res, 'response/message', 'Username not found'));
+            }
+            return (Config::response($res, 'response/message', 'Could not change your password'));
+        }
+
+        public function resetpassword($username, $password, $token){
+            $res = Config::get('response_format');
+            new Database();
+
+            $where = array('username', '=', $username);
+            if (($data = parent::select('tbl_users', $where, null, true))){
+                $user = (object)$data->rows[0];
+                
+                if ($user->token === $token){
+                    $salt = Hash::salt(15);
+                    $input = array(
+                        'password' => Hash::make($password, $salt),
+                        'salt' => $salt
+                    );
+
+                    if (parent::update('tbl_users', $input, $where)){
+                        $res = Config::response($res, 'response/state', 'true');
+                        $res = Config::response($res, 'response/message', 'Reset successful');
+                        parent::update('tbl_users', array('token' => ''), $where);
+                        return ($res);
+                    }
+                }else
+                    return (Config::response($res, 'response/message', 'Incorrect key'));
+            }
+            return (Config::response($res, 'response/message', 'Could not reset your password'));
         }
     }
 ?>

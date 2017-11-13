@@ -1,11 +1,12 @@
 <?php
     class Hash{
 		public static function make($string, $salt = ''){
-			return hash('whirlpool', Config::get('app/salt'). $string . $salt);
+			return (hash('whirlpool', Config::get('app/salt'). $string . $salt));
 		}
 		
 		public static function salt($length){
-			return mcrypt_create_iv($length);
+			//return (mcrypt_create_iv($length));
+			return (self::unique_key($length));
 		}
 		
 		public static function unique_key($retlen = 10){

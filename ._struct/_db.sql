@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS tbl_login_session
 (
     `id`            INT AUTO_INCREMENT PRIMARY KEY,
     `user_id`       INT NOT NULL REFERENCES tbl_users(id),
-    `session`       VARCHAR(280) UNIQUE NOT NULL,
+    `session`       VARCHAR(255) UNIQUE NOT NULL,
     `date_updated`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_created`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
