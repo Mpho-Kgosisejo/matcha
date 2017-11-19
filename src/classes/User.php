@@ -86,7 +86,8 @@
 
                             $res = Config::response($res, 'response/state', 'true');
                             $res = Config::response($res, 'response/message', 'login success');
-                            $res = Config::response($res, 'data', self::info(array('token' => $token)));
+                            $data = (object)self::info(array('token' => $token));
+                            $res = Config::response($res, 'data', $data->data);
                             return ($res);
                         }else
                             return (Config::response($res, 'response/message', $error));
@@ -125,11 +126,11 @@
                 }
             }
 
-            $token = Hash::unique_key();
+            $token = Hash::unique_key(6);
             
-            /*if (!ft_sendmail($email, ucwords($fn . ' ' . $ln), Config::get('app/name') . " - Registration Confirmation", ft_ms_register($token))){
+            if (!ft_sendmail($email, ucwords($fn . ' ' . $ln), Config::get('app/name') . " - Registration Confirmation", ft_ms_register(ucwords($fn . ' ' . $ln), $token))){
                 return (Config::response($res, 'response/message', 'could not email registration confirmation, please try again'));
-            }*/
+            }
 
             $salt = Hash::salt(15);
             
@@ -220,25 +221,58 @@
 
             $where = array('username', '=', $username);
             if (($data = parent::select('tbl_users', $where, null, true))){
-                $user = (object)$data->rows[0];
-                
-                if ($user->token === $token){
-                    $salt = Hash::salt(15);
-                    $input = array(
-                        'password' => Hash::make($password, $salt),
-                        'salt' => $salt
-                    );
+                if ($data->rowCount > 0){
+                    $user = (object)$data->rows[0];
+                    
+                    if ($user->token === $token){
+                        $salt = Hash::salt(15);
+                        $input = array(
+                            'password' => Hash::make($password, $salt),
+                            'salt' => $salt
+                        );
 
-                    if (parent::update('tbl_users', $input, $where)){
-                        $res = Config::response($res, 'response/state', 'true');
-                        $res = Config::response($res, 'response/message', 'Reset successful');
-                        parent::update('tbl_users', array('token' => ''), $where);
-                        return ($res);
+                        if (parent::update('tbl_users', $input, $where)){
+                            $res = Config::response($res, 'response/state', 'true');
+                            $res = Config::response($res, 'response/message', 'Reset successful');
+                            parent::update('tbl_users', array('token' => ''), $where);
+                            return ($res);
+                        }
                     }
-                }else
-                    return (Config::response($res, 'response/message', 'Incorrect key'));
+                }
+                return (Config::response($res, 'response/message', 'Incorrect key'));
             }
             return (Config::response($res, 'response/message', 'Could not reset your password'));
+        }
+
+        public function confirm_registration($token){
+            $res = Config::get('response_format');
+            new Database();
+
+            
+            $where = array('token', '=', $token);
+            if (($data = parent::select('tbl_user_registrations', $where, null, true))){
+                if ($data->rowCount > 0){
+                    $reg = (object)$data->rows[0];
+                    $input = array(
+                        'firstname' => $reg->firstname,
+                        'lastname' => $reg->lastname,
+                        'username' => $reg->username,
+                        'email' => $reg->email,
+                        'password' => $reg->password,
+                        'salt' => $reg->salt
+                    );
+
+                    if (!parent::insert('tbl_users', $input))
+                        return (Config::response($res, 'response/message', 'Could not confirm registration at this time, please try later'));
+                    
+                    parent::delete('tbl_user_registrations', $where);
+                    $res = Config::response($res, 'response/state', 'true');
+                    $res = Config::response($res, 'response/message', 'Confirmation successful');
+                    return ($res);
+                }
+                return (Config::response($res, 'response/message', 'Incorrect code'));
+            }
+            return (Config::response($res, 'response/message', 'Could not confirm registration'));
         }
     }
 ?>
