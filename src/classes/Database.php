@@ -53,11 +53,14 @@
                 $stmt->execute();
 
                 if (isset($ret_obj)){
-                    if ($ret_obj == true){
+                    if ($ret_obj === true){
                         $data['rows'] = self::getRows($stmt, 0);
                         $data['rowCount'] = self::getCount($stmt);
                         return ((object)$data);
                     }
+                    $data['rows'] = self::getRows($stmt, 0);
+                    $data['rowCount'] = self::getCount($stmt);
+                    return ((array)$data);
                 }
                 return ($stmt);
             }catch(Exception $exc){
