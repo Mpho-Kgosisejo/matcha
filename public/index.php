@@ -16,11 +16,9 @@
     $app = new \Slim\App;
     $app->get('/test', function (Request $request, Response $response) {
         try{
-
-            //$res = User::confirm_registration('xaBKxSHKO6');
             
-            $res = Friends::suggestions(2);
-            //$res = User::register('Mpho', 'Kgosisejo', 'mkgosise2', 'smpho.kgosisejo@hotmail.com', '123456');
+            $res = User::update_profile('OUOeEc9LaqjIY0nO0SDBdF6pywfK7m9VhYaWbkHlK13J1rx1jbDxQJWogc9ozjjQiuMtOtPzuSjwkRxD2aaT',
+                'gift', 'kgosisi', 'male', '', 'female', 'Awesome...!');
             echo json_encode($res);
             
             //print_r(Config::get('response_format/response/state'));
@@ -32,7 +30,7 @@
     });
 
     $app->get('/profile', function (Request $request, Response $response) {
-        $input = $request->getParsedBody();
+        $input = ft_escape_array($request->getParsedBody());
         //$input['username'] = 'mkgosise';
 
         if (isset($input['username'])){
@@ -56,7 +54,7 @@
 
     $app->get('/suggestions', function (Request $request, Response $response) {
         try{
-            $input = $request->getParsedBody();
+            $input = ft_escape_array($request->getParsedBody());
 
             print_r($input);
             //$res = friends::suggestions(2);
@@ -66,12 +64,30 @@
         }
     });
 
-    /*$app->post('/userinfo', function (Request $request, Response $response){
-        $input = $request->getParsedBody();
-    });*/
+    $app->get('/info', function (Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+
+        if (isset($input['session'])){
+            $res = User::info(array('token' => $input['session']));
+            echo json_encode($res);
+        }else
+            echo '{}';
+    });
+
+    $app->post('/update-profile', function (Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+
+        if (isset($input['session']) && isset($input['fname']) && isset($input['lname']) && isset($input['gender']) &&
+                isset($input['dob']) && isset($input['sexual_preference']) && isset($input['bio'])){
+
+            $res = User::update_profile($input['session'], $input['fname'], $input['lname'], $input['gender'], $input['dob'], $input['sexual_preference'], $input['bio']);
+            echo json_encode($res);
+        }else
+            echo '{}';
+    });
 
     $app->post('/login', function (Request $request, Response $response){
-        $input = $request->getParsedBody();
+        $input = ft_escape_array($request->getParsedBody());
 
         if (!isset($input['isSession']))
             echo '{}';
@@ -90,7 +106,7 @@
     });
 
     $app->post('/register', function (Request $request, Response $response){
-        $input = $request->getParsedBody();
+        $input = ft_escape_array($request->getParsedBody());
 
         if (isset($input['fname']) && isset($input['lname']) && isset($input['username']) && isset($input['email']) && isset($input['password'])){
             $res = User::register($input['fname'], $input['lname'], $input['username'], $input['email'], $input['password']);
@@ -102,7 +118,7 @@
     });
 
     $app->get('/logut', function (Request $request, Response $response){
-        $input = $request->getParsedBody();
+        $input = ft_escape_array($request->getParsedBody());
 
         if (isset($input['session'])){
             $res = User::logout($input['session']);
@@ -112,7 +128,7 @@
     });
 
     $app->post('/confirm-registration', function(Request $request, Response $response){
-        $input = $request->getParsedBody();
+        $input = ft_escape_array($request->getParsedBody());
         
         if (isset($input['token'])){
             $res = User::confirm_registration($input['token']);

@@ -274,5 +274,34 @@
             }
             return (Config::response($res, 'response/message', 'Could not confirm registration'));
         }
+
+        public function update_profile($session, $fn, $ln, $gender, $dob, $sexual_preference, $bio){
+            $res = Config::get('response_format');
+            new Database();
+
+            $where = array('session', '=', $session);
+            if (($data = parent::select('tbl_login_session', $where, null, true))){
+                if ($data->rowCount > 0){
+                    $user_data = (object)$data->rows[0];
+
+                    $where = array('id', '=', $user_data->user_id);
+                    $input = array(
+                        'firstname' => $fn,
+                        'lastname' => $ln,
+                        'gender' => $gender,
+                        'date_of_birth' => $dob,
+                        'sexual_preference' => $sexual_preference,
+                        'biography' => $bio
+                    );
+                    if (parent::update('tbl_users', $input, $where)){
+                        $res = Config::response($res, 'response/state', 'true');
+                        $res = Config::response($res, 'response/message', 'Profile successfully updated');
+                        return ($res);
+                    }
+                }
+            }
+
+            return (Config::response($res, 'response/message', 'Could not update your profile, try again.'));
+        }
     }
 ?>
