@@ -303,5 +303,56 @@
 
             return (Config::response($res, 'response/message', 'Could not update your profile, try again.'));
         }
+
+        public function upload_profile($session, $image, $code){
+            $res = Config::get('response_format');
+            new Database();
+
+            $where = array('session', '=', $session);
+            if (($data = parent::select('tbl_login_session', $where, null, true))){
+                if ($data->rowCount > 0){
+                    $user_data = (object)$data->rows[0];
+
+                    $where = array(
+                        'user_id', '=', $user_data->user_id,
+                        'AND',
+                        'code', '=', $code
+                    );
+                    if (($data = parent::select('tbl_user_images', $where, null, true))){
+                        $url = ft_save_profile_image($image);
+
+                        $input = array(
+                            'user_id' => $user_data->user_id,
+                            'code' => $code,
+                            'url' => $url
+                        );
+
+                        if ($data->rowCount > 0){
+                            //Update...
+                            $data = (object)$data->rows[0];
+                            $file = '../'.$data->url;
+                            if (file_exists($file))
+                                unlink($file);
+
+                            if (parent::update('tbl_user_images', $input, $where)){
+                                $res = Config::response($res, 'response/state', 'true');
+                                $res = Config::response($res, 'response/message', 'Image upload success');
+                                $res = Config::response($res, 'data', array('url' => $url));
+                                return ($res);
+                            }
+                        }else{
+                            //Insert...
+                            if (parent::insert('tbl_user_images', $input)){
+                                $res = Config::response($res, 'response/state', 'true');
+                                $res = Config::response($res, 'response/message', array('url' => $url));
+                                return ($res);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return (Config::response($res, 'response/message', 'Could not upload image, try again.'));
+        }
     }
 ?>

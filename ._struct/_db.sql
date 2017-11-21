@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS tbl_user_images
 (
     `id`            INT AUTO_INCREMENT PRIMARY KEY,
     `user_id`       INT NOT NULL REFERENCES tbl_users(id),
+    `code`          INT NOT NULL,
     `url`           TEXT NOT NULL,
     `date_updated`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_created`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

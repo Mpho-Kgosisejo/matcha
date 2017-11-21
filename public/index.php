@@ -16,9 +16,7 @@
     $app = new \Slim\App;
     $app->get('/test', function (Request $request, Response $response) {
         try{
-            
-            $res = User::update_profile('OUOeEc9LaqjIY0nO0SDBdF6pywfK7m9VhYaWbkHlK13J1rx1jbDxQJWogc9ozjjQiuMtOtPzuSjwkRxD2aaT',
-                'gift', 'kgosisi', 'male', '', 'female', 'Awesome...!');
+            $res = User::upload_profile('7cUAWD8He6zTPzNS4vTSNSsBm9BhBiUDSMsSZzSIk9eoJt7Cv0DAxJn397rdb7pOZdo1qnYBO3fLZfOdkoKb', 'kkk', '1');
             echo json_encode($res);
             
             //print_r(Config::get('response_format/response/state'));
@@ -105,13 +103,21 @@
         }
     });
 
+    $app->post('/profile-images', function (Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        
+        if (isset($input['session']) && isset($input['image']) && isset($input['code'])){
+            $res = User::upload_profile($input['session'], $input['image'], $input['code']);
+            echo json_encode($res);
+        }else
+            echo '{}';
+    });
+
     $app->post('/register', function (Request $request, Response $response){
         $input = ft_escape_array($request->getParsedBody());
 
         if (isset($input['fname']) && isset($input['lname']) && isset($input['username']) && isset($input['email']) && isset($input['password'])){
             $res = User::register($input['fname'], $input['lname'], $input['username'], $input['email'], $input['password']);
-            //$ret = Config::response(Config::response(), 'response/state', 'true');
-            //$res = Config::response($ret, 'response/message', 'Ok... test works');
             echo json_encode($res);
         }else
             echo '{}';
