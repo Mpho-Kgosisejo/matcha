@@ -36,6 +36,16 @@
                         $_data['session'] = $session->session;
                     }
 
+                    if (($images = parent::select('tbl_user_images', array('user_id', '=', $_data['id']), null, true))){
+                        if ($images->rowCount > 0){
+                            
+                            foreach ($images->rows as $image){
+                                if ($image['code'] == 1)
+                                    $_data['img'.$image['code']] = $image;
+                            }
+                        }
+                    }
+
                     $res = Config::response($res, 'response/state', 'true');
                     $res = Config::response($res, 'response/message', 'success');
                     $res = Config::response($res, 'data', $_data);
@@ -319,7 +329,7 @@
                         'code', '=', $code
                     );
                     if (($data = parent::select('tbl_user_images', $where, null, true))){
-                        $url = ft_save_profile_image($image);
+                        $url =  'http://'.Config::get('app/url') .'/'. ft_save_profile_image($image);
 
                         $input = array(
                             'user_id' => $user_data->user_id,

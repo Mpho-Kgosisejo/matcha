@@ -16,10 +16,10 @@
     $app = new \Slim\App;
     $app->get('/test', function (Request $request, Response $response) {
         try{
-            $res = User::upload_profile('7cUAWD8He6zTPzNS4vTSNSsBm9BhBiUDSMsSZzSIk9eoJt7Cv0DAxJn397rdb7pOZdo1qnYBO3fLZfOdkoKb', 'kkk', '1');
+            $res = Friends::search('mk');
             echo json_encode($res);
             
-            //print_r(Config::get('response_format/response/state'));
+            //print_r(Config::get('response_format/response'));
             /*$ret = Config::response(Config::response(), 'response/state', 'true');
             print_r(Config::response($ret, 'response/message', 'Ok... test works'));*/
         }catch(Exception $exc){
@@ -37,9 +37,21 @@
             //run raw query "WHERE blocked_user.id != id..."
             if (($data = $db->select('tbl_users', array('username', '=', $input['username']), null, true))){
                 if ($data->rowCount){
-                    $data = $data->rows;
+                    $data = $data->rows[0];
+                    $images_data = '';
+
+                    //echo $query = "SELECT * FROM tbl_user_images WHERE user_id = ".$data['id'].";";
+                    if (($images = $db->select('tbl_user_images', array('user_id', '=', $data['id']), null, true))){
+                        if ($images->rowCount > 0){
+                            $data['images'] = $images->rows;
+                            
+                            foreach ($images->rows as $image){
+                                $data['img'.$image['code']] = $image;
+                            }
+                        }
+                    }
                     $res = Config::response(Config::response(), 'response/state', 'true');
-                    $res = Config::response($res, 'data', $data[0]);
+                    $res = Config::response($res, 'data', $data);
                     echo json_encode($res);
                     return ;
                 }
@@ -140,6 +152,16 @@
             $res = User::confirm_registration($input['token']);
             //$ret = Config::response(Config::response(), 'response/state', 'true');
            // $res = Config::response($ret, 'response/message', 'Ok... test works');
+            echo json_encode($res);
+        }else
+            echo '{}';
+    });
+
+    $app->post('/search', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        
+        if (isset($input['search_value'])){
+            $res = Friends::search($input['search_value']);
             echo json_encode($res);
         }else
             echo '{}';

@@ -3,11 +3,11 @@
         'server' => array(
             'host' => 'localhost',
             'db_user' => 'root',
-            'db_password' => '',
+            'db_password' => '123456',
             'db_name' => 'matcha'
         ),
         'app' => array(
-            'url' => 'localhost:8383/my_sites/matcha',
+            'url' => '127.0.0.1:8080/matcha-api',
             'name' => 'Matcha',
             'email' => '',
             'email_password' => '',
