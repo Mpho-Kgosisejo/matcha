@@ -7,7 +7,8 @@
             'db_name' => 'matcha'
         ),
         'app' => array(
-            'url' => '127.0.0.1:8080/matcha-api',
+            //NB*! url without "http://"
+            'url' => '127.0.0.1:8080/matcha',
             'name' => 'Matcha',
             'email' => '',
             'email_password' => '',

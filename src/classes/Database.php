@@ -26,11 +26,18 @@
             return (self::$conn);
         }
 
-        public function rawQuery($query){
+        public function rawQuery($query, $returnData = false){
             try{
                 $stmt = self::$conn->prepare($query);
                 $stmt->execute();
-                return ($stmt);
+
+                if ($returnData === false)
+                    return ($stmt);
+                else{
+                    $data['rows'] = self::getRows($stmt, 0);
+                    $data['rowCount'] = self::getCount($stmt);
+                    return ($data);
+                }
             }catch(Exception $exc){
                 ft_put_error($exc->getMessage());
             }

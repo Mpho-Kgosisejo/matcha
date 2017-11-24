@@ -56,7 +56,7 @@
         }
 
         public function login($login, $password){
-            $error = 'Could not register you at this time, please wait 5 minutes or so and try again.';
+            $error = 'Could not log you in at this time, please wait 2 minutes or so and try again.';
             $res = Config::get('response_format');
             new Database();
 
@@ -82,8 +82,7 @@
 
                                 if ((!parent::insert('tbl_login_session', $input)))
                                     return (Config::response($res, 'response/message', $error));
-                            }
-                            else{
+                            }else{
                                 $where = array('user_id' ,'=', $user->id);
                                 $input = array(
                                     'user_id' => $user->id,
@@ -93,6 +92,13 @@
                                 if ((!parent::update('tbl_login_session', $input, $where)))
                                     return (Config::response($res, 'response/message', $error));
                             }
+
+                            $inputHistory = array(
+                                'user_id_from' => $user->id,
+                                'user_id_to' => -1,
+                                'action' => 'login'
+                            );
+                            parent::insert('tbl_user_history', $inputHistory);
 
                             $res = Config::response($res, 'response/state', 'true');
                             $res = Config::response($res, 'response/message', 'login success');

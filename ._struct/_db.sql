@@ -40,11 +40,35 @@ CREATE TABLE IF NOT EXISTS tbl_user_images
     `date_created`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+/*
+CREATE TABLE IF NOT EXISTS tbl_user_notifications
+(
+    `id`            INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id_to`    INT NOT NULL REFERENCES tbl_users(id),
+    `user_id_from`  INT NOT NULL REFERENCES tbl_users(id),
+    `dsc`           TEXT NOT NULL,
+    `date_updated`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `date_created`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+*/
+
+/*
 CREATE TABLE IF NOT EXISTS tbl_visit_history
 (
     `id`            INT AUTO_INCREMENT PRIMARY KEY,
     `user_id_from`  INT NOT NULL REFERENCES tbl_users(id),
     `user_id_to`    INT NOT NULL REFERENCES tbl_users(id),
+    `date_updated`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `date_created`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
+);
+*/
+
+CREATE TABLE IF NOT EXISTS tbl_user_history
+(
+    `id`            INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id_from`  INT NOT NULL REFERENCES tbl_users(id),
+    `user_id_to`    INT NOT NULL,
+    `action`        ENUM('connect','unconnect','visit', 'login', 'message', 'report', 'block') NOT NULL,
     `date_updated`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_created`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
@@ -62,6 +86,7 @@ CREATE TABLE IF NOT EXISTS tbl_user_connections(
     `id`            INT AUTO_INCREMENT PRIMARY KEY,
     `user_id_from`  INT NOT NULL REFERENCES tbl_users(id),
     `user_id_to`    INT NOT NULL REFERENCES tbl_users(id),
+    `status`        INT NOT NULL DEFAULT 0,
     `date_updated`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_created`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
