@@ -122,7 +122,6 @@ CREATE TABLE IF NOT EXISTS tbl_user_report(
     `user_id_from`      INT NOT NULL REFERENCES tbl_users(id),
     `user_id_to`        INT NOT NULL REFERENCES tbl_users(id),
     `description`       TEXT,
-    `reports`           INT NOT NULL DEFAULT '1',
     `date_updated`      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_created`      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

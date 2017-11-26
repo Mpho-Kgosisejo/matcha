@@ -198,5 +198,18 @@
             }
             return (Config::response($res, 'response/message', $error));
         }
+
+        public function block($session, $id){
+            $error = 'Could\' not block user, please try again in few minutes';
+            $res = Config::get('response_format');
+
+            if (($data = User::info(array('token' => $session)))){
+                print_r($data);
+                echo $session.' - '.$id;
+                $where = array(
+                );
+            }
+            return (Config::response($res, 'response/message', $error));
+        }
     }
 ?>

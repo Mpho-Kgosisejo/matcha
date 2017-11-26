@@ -3,9 +3,10 @@
     use \Psr\Http\Message\ResponseInterface as Response;
 
     header('Access-Control-Allow-Origin: *');
-    /*header('Access-Control-Allow-Methods: *');
+    /**/
+    header('Access-Control-Allow-Methods: *');
     header('Content-Type: application/json');
-    */
+    /**/
 
     require '../vendor/autoload.php';
 
@@ -247,6 +248,27 @@
         if (isset($input['session'])){
             $res = Friends::_list($input['session']);
             echo json_encode($res);
+        }else
+            echo '{}';
+    });
+
+    $app->get('/block-user', function(Request $request, Response $response){
+        //$input = ft_escape_array($request->getParsedBody());
+        new Database();
+        $input['session'] = 'XMq6SH7pkf3zUZzT8KdlC0D2jvhfklLi7bo0TvpdLtNFsnyB7MWJMzM653lqo6Iwi6xbCXpnqd3TACuIorrb';
+        $input['username'] = 'mkgosise';
+
+        if (isset($input['session']) && isset($input['username'])){
+            $where = array(
+                'username', '=', $input['username']
+            );
+            if (($data = Database::select('tbl_users', $where, null, true))){
+                if ($data->rowCount > 0){
+                    $user = (object)$data->rows[0];
+                    $res = Friends::block($input['session'], $user->id);
+                    echo json_encode($res);
+                }
+            }
         }else
             echo '{}';
     });
