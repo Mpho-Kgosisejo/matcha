@@ -15,7 +15,8 @@
             $conn = $db->connection();
 
             //$query = "SELECT * FROM tbl_users WHERE username LIKE :un OR firstname LIKE :fn OR lastname LIKE :ln;";
-            $query = "SELECT * FROM tbl_users WHERE username LIKE '%go%' OR firstname LIKE '%go%' OR lastname LIKE '%go%'";
+            $query = "SELECT * FROM tbl_users";
+            //$query = "SELECT * FROM tbl_users WHERE username LIKE '%go%' OR firstname LIKE '%go%' OR lastname LIKE '%go%'";
             $stmt = $conn->prepare($query);
             //$stmt->bindparam(':un', "%{$value}%");
             //$stmt->bindparam(':fn', "%{$value}%");

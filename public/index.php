@@ -273,5 +273,32 @@
             echo '{}';
     });
 
+    $app->get('/get-chat', function(Request $request, Response $response){
+        print_r($request->getParsedBody());
+        //$input = ft_escape_array($request->getParsedBody());
+        $db = new Database();
+        $res = Config::get('response_format');
+        $conn = $db->connection();
+        /*$input['other'] = 2;
+        $input['user'] = 3;*/
+
+        if (isset($input['other']) && isset($input['user'])){
+            $query = "SELECT * FROM tbl_user_messages WHERE (user_id_from = :from || user_id_to = :from) AND (user_id_from = :to || user_id_to = :to) ORDER BY date_created ASC;";
+            $stmt = $conn->prepare($query);
+            $stmt->bindparam(':from', $input['other']);
+            $stmt->bindparam(':to', $input['user']);
+            if ($stmt->execute()){
+                if ($db->getCount($stmt) > 0){
+                    $res = Config::response($res, 'response/state', 'true');
+                    $res = Config::response($res, 'response/message', 'records:'.$db->getCount($stmt));
+                    echo json_encode(Config::response($res, 'data', $db->getRows($stmt)));
+                    return ;
+                }
+            }
+            echo json_encode(Config::response($res, 'response/message', 'records:0'));
+        }else
+            echo '{}';
+    });
+
     $app->run();
 ?>
