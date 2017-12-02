@@ -46,6 +46,10 @@
                         }
                     }
 
+                    $tags = self::tags($_data['id']);
+                    if ($tags['response']['state'] == 'true')
+                        $_data['tags'] = $tags['data'];
+
                     $res = Config::response($res, 'response/state', 'true');
                     $res = Config::response($res, 'response/message', 'success');
                     $res = Config::response($res, 'data', $_data);
@@ -369,6 +373,75 @@
             }
 
             return (Config::response($res, 'response/message', 'Could not upload image, try again.'));
+        }
+
+        public function add_tag($tag, $userid){
+            new Database();
+            $res = Config::get('response_format');
+
+            $where = array(
+                'tag', '=', $tag
+            );
+
+            $tag = trim($tag);
+
+            if (preg_match('/\s/',$tag))
+                return (Config::response($res, 'response/message', 'Tag should not contain white-spaces'));
+
+            if (($data = parent::select('tbl_interests', $where, null, true))){
+                if ($data->rowCount > 0){
+                    $data = (object)$data->rows[0];
+                    $where = array(
+                        'user_id', '=', $userid,
+                        'AND',
+                        'interest_id', '=', $data->id
+                    );
+                    if (($new_data = parent::select('tbl_user_interests', $where, null, true))){
+                        if ($new_data->rowCount == 0){
+                            $input = array(
+                                'user_id' => $userid,
+                                'interest_id' => $data->id
+                            );
+                            if (!parent::insert('tbl_user_interests', $input)){
+                                $res = Config::response($res, 'response/message', 'Error');
+                                return ($res);
+                            }
+                        }
+                        $res = Config::response($res, 'response/state', 'true');
+                        $res = Config::response($res, 'response/message', 'success');
+                        return ($res);
+                    }
+                }else{
+                    $input = array(
+                        'tag' => $tag 
+                    );
+                    if (!parent::insert('tbl_interests', $input)){
+                        $res = Config::response($res, 'response/message', 'Error');
+                        return ($res);
+                    }else
+                        return (self::add_tag($tag, $userid));
+                }
+            }
+            return (Config::response($res, 'response/message', 'Error'));
+        }
+
+        public function tags($userid){
+            new Database();
+            $conn = parent::connection();
+            $res = Config::get('response_format');
+
+            $query = "SELECT * FROM tbl_user_interests, tbl_interests WHERE tbl_interests.id = interest_id AND user_id = :userid";
+            $stmt = $conn->prepare($query);
+            $stmt->bindparam(':userid', $userid);
+
+            if ($stmt->execute()){
+                if (parent::getCount($stmt) > 0){
+                    $res = Config::response($res, 'response/state', 'true');
+                    $res = Config::response($res, 'response/message', 'records:'.parent::getCount($stmt));
+                    return (Config::response($res, 'data', parent::getRows($stmt)));
+                }
+            }
+            return (Config::response($res, 'response/message', 'records:0'));
         }
     }
 ?>

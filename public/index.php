@@ -3,10 +3,10 @@
     use \Psr\Http\Message\ResponseInterface as Response;
 
     header('Access-Control-Allow-Origin: *');
-    /**/
+    /* *
     header('Access-Control-Allow-Methods: *');
     header('Content-Type: application/json');
-    /**/
+    /* */
 
     require '../vendor/autoload.php';
 
@@ -273,20 +273,18 @@
             echo '{}';
     });
 
-    $app->get('/get-chat', function(Request $request, Response $response){
-        print_r($request->getParsedBody());
-        //$input = ft_escape_array($request->getParsedBody());
+    $app->post('/get-chat', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
         $db = new Database();
         $res = Config::get('response_format');
         $conn = $db->connection();
-        /*$input['other'] = 2;
-        $input['user'] = 3;*/
-
-        if (isset($input['other']) && isset($input['user'])){
-            $query = "SELECT * FROM tbl_user_messages WHERE (user_id_from = :from || user_id_to = :from) AND (user_id_from = :to || user_id_to = :to) ORDER BY date_created ASC;";
+         
+        if (isset($input['other_id']) && isset($input['user_id'])){
+            $query = "SELECT * FROM tbl_user_messages WHERE (user_id_from = :from || user_id_to = :from) AND (user_id_from = :to || user_id_to = :to) ORDER BY date_created DESC;";
             $stmt = $conn->prepare($query);
-            $stmt->bindparam(':from', $input['other']);
-            $stmt->bindparam(':to', $input['user']);
+            $stmt->bindparam(':from', $input['other_id']);
+            $stmt->bindparam(':to', $input['user_id']);
+
             if ($stmt->execute()){
                 if ($db->getCount($stmt) > 0){
                     $res = Config::response($res, 'response/state', 'true');
@@ -296,6 +294,100 @@
                 }
             }
             echo json_encode(Config::response($res, 'response/message', 'records:0'));
+        }else
+            echo '{}';
+    });
+
+    $app->post('/send-message', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        $db = new Database();
+        $res = Config::get('response_format');
+        $conn = $db->connection();
+         
+        if (isset($input['from']) && isset($input['to']) && isset($input['mssg'])){
+            $input = array(
+                'user_id_from' => $input['from'],
+                'user_id_to' => $input['to'],
+                'message' => $input['mssg']
+            );
+            
+            if ($db->insert('tbl_user_messages', $input)){
+                $res = Config::response($res, 'response/state', 'true');
+                $res = Config::response($res, 'response/message', 'success');
+                echo json_encode($res);
+                return ;
+            }
+            echo json_encode(Config::response($res, 'response/message', 'error'));
+        }else
+            echo '{}';
+    });
+
+    $app->post('/add-tag', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+         
+        if (isset($input['tag']) && isset($input['user'])){
+            $res = User::add_tag($input['tag'], $input['user']);
+            $tags = User::tags($input['user']);
+            if ($res['response']['state'] == 'true' && $tags['response']['state'] == 'true')
+                $res['data'] = $tags['data'];
+            echo json_encode($res);
+        }else
+            echo '{}';
+    });
+
+    /*
+    $app->post('/get-tags', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+         
+        if (isset($input['user'])){
+            $res = User::tags($input['user']);
+            echo json_encode($res);
+        }else
+            echo '{}';
+    });
+    */
+
+    $app->post('/delete-tag', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        
+        $res = Config::get('response_format');
+        new Database();
+         
+        $where = array(
+            'interest_id', '=', $input['id'],
+            'AND',
+            'user_id', '=', $input['userid']
+        );
+        if (isset($input['userid']) && isset($input['id'])){
+            if (($data = Database::select('tbl_user_interests', $where, null, true))){
+                if ($data->rowCount > 0){
+                    if (Database::delete('tbl_user_interests', $where)){
+                        //Removing tag...
+                        $tag = (object)$data->rows[0];
+                        $where = array(
+                            'interest_id', '=', $tag->interest_id
+                        );
+                        if (($data = Database::select('tbl_user_interests', $where, null, true))){
+                            if ($data->rowCount == 0){
+                                $where = array(
+                                    'id', '=', $tag->interest_id
+                                );
+                                Database::delete('tbl_interests', $where);
+                            }
+                        }
+
+                        $res = Config::response($res, 'response/state', 'true');
+                        $res = Config::response($res, 'response/message', 'success');
+
+                        $tags = User::tags($input['userid']);
+                        if ($res['response']['state'] == 'true' && $tags['response']['state'] == 'true')
+                            $res['data'] = $tags['data'];
+                        echo json_encode($res);
+                        return ;
+                    }
+                }
+                echo json_encode(Config::response($res, 'response/message', 'Tag not found'));
+            }
         }else
             echo '{}';
     });
