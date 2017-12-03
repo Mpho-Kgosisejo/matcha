@@ -118,7 +118,7 @@
         if (isset($input['session']) && isset($input['fname']) && isset($input['lname']) && isset($input['gender']) &&
                 isset($input['dob']) && isset($input['sexual_preference']) && isset($input['bio'])){
 
-            $res = User::update_profile($input['session'], $input['fname'], $input['lname'], $input['gender'], $input['dob'], $input['sexual_preference'], $input['bio']);
+            $res = User::update_profile($input['session'], $input['fname'], $input['lname'], $input['gender'], $input['dob'], $input['sexual_preference'], $input['bio'], $input['address']);
             echo json_encode($res);
         }else
             echo '{}';
@@ -187,6 +187,7 @@
 
     $app->post('/search', function(Request $request, Response $response){
         $input = ft_escape_array($request->getParsedBody());
+        //$input['search_value'] = 'luiez';
         
         if (isset($input['search_value'])){
             $res = Friends::search($input['search_value']);
@@ -388,6 +389,26 @@
                 }
                 echo json_encode(Config::response($res, 'response/message', 'Tag not found'));
             }
+        }else
+            echo '{}';
+    });
+
+    $app->post('/track-user', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        $res = Config::get('response_format');
+        //$input['session'] = 'nIh7CcwjIxb3rbr4tk269mT6WXlMceUzWcGzodS6L39cfBhJWjQ5FJcCHyoTMjsJv9jTnc08gakwLBfHV5NB';
+        //$input['location'] = "Maf";
+        
+        if (isset($input['session']) && isset($input['location'])){
+            if (($user = (object)User::info(array('token' => $input['session'])))){
+                if ($user->response['state'] == 'true'){
+                    $user = (object)$user->data;
+                    $res = User::track($user->id, $input['location']);
+                    echo json_encode($res);
+                    return ;
+                }
+            }
+            echo json_encode(Config::response($res, 'response/message', 'Could not track user'));
         }else
             echo '{}';
     });

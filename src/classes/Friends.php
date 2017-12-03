@@ -14,23 +14,32 @@
             $db = new Database();
             $conn = $db->connection();
 
-            //$query = "SELECT * FROM tbl_users WHERE username LIKE :un OR firstname LIKE :fn OR lastname LIKE :ln;";
-            $query = "SELECT * FROM tbl_users";
-            //$query = "SELECT * FROM tbl_users WHERE username LIKE '%go%' OR firstname LIKE '%go%' OR lastname LIKE '%go%'";
+            $query = "SELECT * FROM tbl_users WHERE username LIKE ? OR firstname LIKE ? OR lastname LIKE ?;";
+            $params = array("$value%", "$value%", "$value%");
             $stmt = $conn->prepare($query);
-            //$stmt->bindparam(':un', "%{$value}%");
-            //$stmt->bindparam(':fn', "%{$value}%");
-            //$stmt->bindparam(':ln', "%{$value}%");
 
-            if (!$stmt->execute())
+            if (!$stmt->execute($params))
                 return (Config::response($res, 'response/message', $error));
-            $rows = parent::getRows($stmt);
+            if (($rows = (array)parent::getRows($stmt, false))){                
+                $data = $rows;
+                $i = 0;
+                foreach($data as $user){
+                    if (($images = $db->select('tbl_user_images', array('user_id', '=', $user['id']), null, true))){
+                        if ($images->rowCount > 0){
+                            
+                            foreach ($images->rows as $image){
+                                if ($image['code'] == 1)
+                                    $data[$i]['img_url'] = $image['url'];
+                            }
+                        }
+                    }
+                    $i++;
+                }
+                $res = Config::response($res, 'data', $data);
+            }
             $res = Config::response($res, 'response/state', 'true');
             $res = Config::response($res, 'response/message', 'Search success');
-            $res = Config::response($res, 'data', $rows);
             return ($res);
-            //print_r($rows);
-
             return (Config::response($res, 'response/message', $error));
         }
 

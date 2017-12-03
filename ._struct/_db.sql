@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS tbl_users
     `date_of_birth`     DATE,
     `sexual_preference` ENUM('all','male','female') NOT NULL DEFAULT 'all',
     `biography`         TEXT,
+    `address`           TEXT,
     `token`             TEXT,
     `salt`              TEXT NOT NULL,
     `date_updated`      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

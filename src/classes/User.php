@@ -295,7 +295,7 @@
             return (Config::response($res, 'response/message', 'Could not confirm registration'));
         }
 
-        public function update_profile($session, $fn, $ln, $gender, $dob, $sexual_preference, $bio){
+        public function update_profile($session, $fn, $ln, $gender, $dob, $sexual_preference, $bio, $address){
             $res = Config::get('response_format');
             new Database();
 
@@ -311,7 +311,8 @@
                         'gender' => $gender,
                         'date_of_birth' => $dob,
                         'sexual_preference' => $sexual_preference,
-                        'biography' => $bio
+                        'biography' => $bio,
+                        'address' => $address
                     );
                     if (parent::update('tbl_users', $input, $where)){
                         $res = Config::response($res, 'response/state', 'true');
@@ -442,6 +443,43 @@
                 }
             }
             return (Config::response($res, 'response/message', 'records:0'));
+        }
+
+        public function track($id, $location){
+            new Database();
+            $res = Config::get('response_format');
+            $error = 'Error';
+            $where = array(
+                'user_id', '=', $id,
+                'AND',
+                'location', '=', $location
+            );
+
+            if (($data = parent::select('tbl_user_locations', $where, null, true))){
+                $input = array(
+                    'user_id' => $id,
+                    'location' => $location
+                );
+
+                if ($data->rowCount > 0){
+                    /*
+                    if (!parent::update('tbl_user_locations', $input, $where))
+                        return (Config::response($res, 'response/message', $error));
+                    */
+
+                    $res = Config::response($res, 'response/state', 'true');
+                    $res = Config::response($res, 'response/message', 'ok');
+                    return ($res);
+                }else{
+                    if (!parent::insert('tbl_user_locations', $input))
+                        return (Config::response($res, 'response/message', $error));
+                    
+                    $res = Config::response($res, 'response/state', 'true');
+                    $res = Config::response($res, 'response/message', 'Insert sccess');
+                    return ($res);
+                }
+            }
+            return (Config::response($res, 'response/message', $error));
         }
     }
 ?>
