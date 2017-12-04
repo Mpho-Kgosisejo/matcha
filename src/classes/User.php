@@ -118,9 +118,12 @@
             return (Config::response($res, 'response/message', $error));
         }
 
-        public function register($fn, $ln, $username, $email, $password){
+        public function register($fn, $ln, $username, $email, $password, $dob){
             $res = Config::get('response_format');
             new Database();
+
+            if (ft_get_age($dob) < 18)
+                return (Config::response($res, 'response/message', 'You are too young to have an account on this site, you must be 18+ years .'));
 
             //Check if user already has an account...
             if (($stmt = parent::select('tbl_users', array('username', '=', $username)))){
@@ -146,7 +149,7 @@
                 }
             }
 
-            $token = Hash::unique_key(6);
+            $token = Hash::unique_key(10);
             
             if (!ft_sendmail($email, ucwords($fn . ' ' . $ln), Config::get('app/name') . " - Registration Confirmation", ft_ms_register(ucwords($fn . ' ' . $ln), $token))){
                 return (Config::response($res, 'response/message', 'could not email registration confirmation, please try again'));
@@ -160,6 +163,7 @@
                 'password' => Hash::make($password, $salt),
                 'firstname' => ucwords($fn),
                 'lastname' => ucwords($ln),
+                'date_of_birth' => $dob,
                 'salt' => $salt,
                 'token' => $token
             );
@@ -279,6 +283,7 @@
                         'username' => $reg->username,
                         'email' => $reg->email,
                         'password' => $reg->password,
+                        'date_of_birth' => $reg->date_of_birth,
                         'salt' => $reg->salt
                     );
 

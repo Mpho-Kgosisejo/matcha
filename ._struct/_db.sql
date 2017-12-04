@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS tbl_user_registrations
     `password`      TEXT NOT NULL,
     `firstname`     VARCHAR(90) NOT NULL,
     `lastname`      VARCHAR(90) NOT NULL,
+    `date_of_birth` DATE,
     `salt`          TEXT,
     `token`         TEXT,
     `date_updated`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

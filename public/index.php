@@ -16,16 +16,19 @@
     
     $app = new \Slim\App;
     $app->get('/test', function (Request $request, Response $response) {
-        try{
+        //echo date('Y');
+        echo ft_get_age('2000-02-20');
+
+        /*try{
             $res = Friends::invite('qRSBY1Y6xYojnoyjvXq8aevu5qhLqTiRLasJcrQJpf2MEB69ywhILMdQduCDoUu95XThoJ1NZ3ADFHMdd4WZ', 2);
             echo json_encode($res);
             
             //print_r(Config::get('response_format/response'));
             /*$ret = Config::response(Config::response(), 'response/state', 'true');
-            print_r(Config::response($ret, 'response/message', 'Ok... test works'));*/
+            print_r(Config::response($ret, 'response/message', 'Ok... test works'));*\/
         }catch(Exception $exc){
             echo $exc->getMessage();
-        }
+        }*/
     });
 
     $app->get('/profile', function (Request $request, Response $response) {
@@ -156,8 +159,8 @@
     $app->post('/register', function (Request $request, Response $response){
         $input = ft_escape_array($request->getParsedBody());
 
-        if (isset($input['fname']) && isset($input['lname']) && isset($input['username']) && isset($input['email']) && isset($input['password'])){
-            $res = User::register($input['fname'], $input['lname'], $input['username'], $input['email'], $input['password']);
+        if (isset($input['fname']) && isset($input['lname']) && isset($input['username']) && isset($input['email']) && isset($input['password']) && isset($input['dob'])){
+            $res = User::register($input['fname'], $input['lname'], $input['username'], $input['email'], $input['password'], $input['dob']);
             echo json_encode($res);
         }else
             echo '{}';

@@ -7,4 +7,6 @@
     require 'ft_decode_image.php';
     require 'ft_save_profile_image.php';
     require 'ft_ready_app_dir.php';
+    require 'ft_get_age.php';
+    
 ?>
