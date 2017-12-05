@@ -34,7 +34,7 @@
     $app->get('/profile', function (Request $request, Response $response) {
         $input = ft_escape_array($request->getParsedBody());
         //$input['username'] = 'mkgosisejo';
-        //$input['session'] = '0i2ljuJrrJPRSOeo1mJNQzvZg35scXPdgRzAli1M1QEUFTiHf1u6BZ5S3akf89to02YmlZ9nQNhwHAdWCH3d';
+        //$input['session'] = 'URTAXLQRHE4F96ISAY79SHjfkBcUGsRAkLahx09eFeUPkCIVAQ5txpIR0VMGnDgIpr0Wraa7o4WJGEEhuKK1';
 
         if (isset($input['username'])){
             $db = new Database();
@@ -78,6 +78,34 @@
                                     }
                                 }
                             }
+
+                            if ($logged_user->username !== $input['username']){
+                                $where = array(
+                                    'user_id_from', '=', $logged_user->id,
+                                    'AND',
+                                    'user_id_to', '=', $viewed_user->id,
+                                    'AND',
+                                    'action', '=', 'visit'
+                                );
+                                //if (($views = Database::select('tbl_user_history', $where, null, true))){
+                                    //if ($views->rowCount == 0){
+                                        $inputHistory = array(
+                                            'user_id_from' => $logged_user->id,
+                                            'user_id_to' => $viewed_user->id,
+                                            'action' => 'visit'
+                                        );
+                                        Database::insert('tbl_user_history', $inputHistory);
+                                    //}
+                                //}
+                            }
+                            
+                            $data['visits'] = User::visits($viewed_user->id);
+                            /*$query = "SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = $viewed_user->id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history";
+                            if (($views = Database::rawQuery($query, true))){
+                                $views = (object)$views;
+                                $views = (object)$views->rows[0];
+                                $data['visits'] =  number_format($views->count, 2, '.', '');
+                            }*/
                         }
                     }
 
@@ -353,15 +381,14 @@
 
     $app->post('/delete-tag', function(Request $request, Response $response){
         $input = ft_escape_array($request->getParsedBody());
-        
         $res = Config::get('response_format');
         new Database();
-         
         $where = array(
             'interest_id', '=', $input['id'],
             'AND',
             'user_id', '=', $input['userid']
         );
+
         if (isset($input['userid']) && isset($input['id'])){
             if (($data = Database::select('tbl_user_interests', $where, null, true))){
                 if ($data->rowCount > 0){
@@ -412,6 +439,29 @@
                 }
             }
             echo json_encode(Config::response($res, 'response/message', 'Could not track user'));
+        }else
+            echo '{}';
+    });
+
+    $app->post('/changepassword', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        $res = Config::get('response_format');
+        new Database();
+
+        /*
+        $input['session'] = '1ljofMSqFjsTqgo4pYKqKGMNqYIsyU9AgsZvfRVVboOCEdG4brvW7hJygs0PmapCCo8Rg4MstB48OLc0cHXk';
+        $input['oldp'] = '123456';
+        $input['newp'] = '123456';
+        */
+         
+        if (isset($input['session']) && isset($input['oldp']) && isset($input['newp'])){
+            $user = (object)User::info(array('token' => $input['session']));
+            if ($user->response['state'] == 'true'){
+                $user = (object)$user->data;
+
+                $res = User::changepassword($user->username, $input['oldp'], $input['newp']);
+                echo json_encode($res);
+            }
         }else
             echo '{}';
     });

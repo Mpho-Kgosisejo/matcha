@@ -33,8 +33,10 @@
                             }
                         }
                     }
+                    $data[$i]['visits'] = User::visits($user['id']);
                     $i++;
                 }
+
                 $res = Config::response($res, 'data', $data);
             }
             $res = Config::response($res, 'response/state', 'true');

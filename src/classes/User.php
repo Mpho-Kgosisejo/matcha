@@ -97,12 +97,14 @@
                                     return (Config::response($res, 'response/message', $error));
                             }
 
+                            /*
                             $inputHistory = array(
                                 'user_id_from' => $user->id,
                                 'user_id_to' => -1,
                                 'action' => 'login'
                             );
                             parent::insert('tbl_user_history', $inputHistory);
+                            */
 
                             $res = Config::response($res, 'response/state', 'true');
                             $res = Config::response($res, 'response/message', 'login success');
@@ -228,11 +230,11 @@
 
                         if (parent::update('tbl_users', $input, $where)){
                             $res = Config::response($res, 'response/state', 'true');
-                            $res = Config::response($res, 'response/message', 'Password changed successfully');
+                            $res = Config::response($res, 'response/message', 'Password successfully changed');
                             return ($res);
                         }
                     }else
-                        return (Config::response($res, 'response/message', 'Passwords do not match'));
+                        return (Config::response($res, 'response/message', 'Old Passwords does not match your current password'));
                 }else
                     return (Config::response($res, 'response/message', 'Username not found'));
             }
@@ -473,7 +475,7 @@
                     */
 
                     $res = Config::response($res, 'response/state', 'true');
-                    $res = Config::response($res, 'response/message', 'ok');
+                    $res = Config::response($res, 'response/message', 'Track success');
                     return ($res);
                 }else{
                     if (!parent::insert('tbl_user_locations', $input))
@@ -485,6 +487,17 @@
                 }
             }
             return (Config::response($res, 'response/message', $error));
+        }
+
+        public function visits($id){
+            $query = "SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = $id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history";
+            
+            if (($views = parent::rawQuery($query, true))){
+                $views = (object)$views;
+                $views = (object)$views->rows[0];
+                return (number_format($views->count, 2, '.', ''));
+            }
+            return (0);
         }
     }
 ?>
