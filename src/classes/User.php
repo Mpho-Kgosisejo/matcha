@@ -19,9 +19,10 @@
                 return (array());
             if ($target_key === 'token'){
                 if (($stmt = parent::select('tbl_login_session', array('session', '=', $target_value)))){
-                    if (parent::getCount($stmt) == 1){
+                    if (parent::getCount($stmt) > 0){
                         $session = parent::getRows($stmt)[0];
-                    }
+                    }else
+                        return (array());
                 }
             }
 
@@ -498,6 +499,224 @@
                 return (number_format($views->count, 2, '.', ''));
             }
             return (0);
+        }
+
+        public function get_visits($id){
+            $ret = array();
+            $query = "SELECT DISTINCT username, tbl_user_history.action, tbl_user_history.date_created  FROM tbl_users, tbl_user_history WHERE tbl_users.id = tbl_user_history.user_id_from AND tbl_user_history.user_id_to = $id AND tbl_user_history.action = 'visit' ORDER BY tbl_user_history.date_created DESC;";
+            $query_count = "SELECT DISTINCT COUNT(username) as 'count'  FROM tbl_users, tbl_user_history WHERE tbl_users.id = tbl_user_history.user_id_from AND tbl_user_history.user_id_to = $id AND tbl_user_history.action = 'visit' ORDER BY tbl_user_history.date_created DESC;";
+            
+            if (($views = parent::rawQuery($query, true))){
+                $views = (object)$views;
+                if (!$views->rows)
+                    return(false);
+                if (($views_count = parent::rawQuery($query_count, true))){
+                    $views_count = (object)$views_count['rows'][0];
+                    $ret['count'] = $views_count->count;
+                }
+                $ret['data'] = $views->rows;
+
+                return ($ret);
+            }
+            return(false);
+        }
+
+        public function get_likes($id){
+            $ret = array();
+            $query = "SELECT DISTINCT username, tbl_user_history.action, tbl_user_history.date_created FROM tbl_users, tbl_user_history WHERE tbl_users.id = tbl_user_history.user_id_from AND tbl_user_history.user_id_to = $id AND (tbl_user_history.action = 'connect' OR tbl_user_history.action = 'unconnect') ORDER BY tbl_user_history.date_created DESC;";
+            $query_count = "SELECT DISTINCT COUNT(username) as 'count' FROM tbl_users, tbl_user_history WHERE tbl_users.id = tbl_user_history.user_id_from AND tbl_user_history.user_id_to = $id AND (tbl_user_history.action = 'connect' OR tbl_user_history.action = 'unconnect') ORDER BY tbl_user_history.date_created DESC;";
+
+            if (($views = parent::rawQuery($query, true))){
+                $views = (object)$views;
+                if (!$views->rows)
+                    return(false);
+                if (($views_count = parent::rawQuery($query_count, true))){
+                    $views_count = (object)$views_count['rows'][0];
+                    $ret['count'] = $views_count->count;
+                }
+                $ret['data'] = $views->rows;
+                
+                return ($ret);
+            }
+            return(false);
+        }
+
+        public function suggestions($id, $inerests = false){
+            new Database();
+            $res = Config::get('response_format');
+
+            if (($user = parent::select('tbl_users', array('id', '=', $id), null, true))){
+                if ($user->rowCount > 0){
+                    $user = (object)$user->rows[0];
+
+                    if ($location = self::city($id, $user->address)){
+                        //location...
+                        $query = "SELECT tbl_users.id as 'user_id', username, gender FROM tbl_users, tbl_user_locations WHERE tbl_users.id = tbl_user_locations.user_id AND (tbl_users.address LIKE '%$location%' OR tbl_user_locations.location LIKE '%$location%');";
+                        
+                        if (($data = parent::rawQuery($query, true))){
+                            $data = (object)$data;
+                            if ($data->rowCount > 0){
+                                $matched_users = array();
+                                $data = $data->rows;
+
+                                if ($user->date_of_birth){
+                                    //echo "User age: $user->date_of_birth ($user->id. $user->username #$user->gender @$user->sexual_preference - $location)<br>";
+                                    foreach ($data as $element){
+                                        $element = (object)$element;
+                                        if (($other_user = self::age_match($id, $user->date_of_birth, $element->user_id, 5))){
+                                            if (self::filter_sex($user->gender, $user->sexual_preference, $element->gender)){
+                                                $matched_users[] = $element->user_id;
+                                            }
+                                        }
+                                    }
+
+                                    if (count($matched_users) > 0 && $inerests){
+                                        $tmp = array();
+                                        foreach ($matched_users as $matched_users_id){
+                                            if (($usr_data = self::filter_interests($user->id, $matched_users_id))){
+                                                $usr_data = (object)$usr_data;
+                                                $tmp[] = $usr_data->user_id;
+                                            }
+                                        }
+                                        $matched_users = $tmp;
+                                    }
+                                    
+                                    if (count($matched_users) > 0){
+                                        $res = Config::response($res, 'response/state', 'true');
+                                        $res = Config::response($res, 'response/message', 'success');
+                                        $res = Config::response($res, 'data', $matched_users);                                    
+                                        return ($res);
+                                    }
+                                    return (Config::response($res, 'response/message', 'Could not find a match for you'));
+                                }
+                                return (Config::response($res, 'response/message', 'Could not get a match of your age, try updating your date of birthday.'));
+                            }
+                        }
+                    }else
+                        return (Config::response($res, 'response/message', 'Could not find a match for you, of your current region'));
+                }
+            }
+            return (Config::response($res, 'response/message', 'Could not find a match for you'));
+        }
+
+        public function get_suggestions($session){
+            $user = (object)self::info(array('token' => $session));
+            if (isset($user->response) && $user->response['state'] == 'true'){
+                $user = (object)$user->data;
+                $res = self::suggestions($user->id);
+                if ($res['response']['state'] == 'true'){
+                    $final = array();
+                    $suggestions = array();
+                    $res_without_interests = $res['data'];
+                    $res_with_interests = self::suggestions($user->id, true);               
+                    
+                    if ($res_with_interests['response']['state'] == 'true')
+                        $final = $res_with_interests['data'];
+                    
+                    foreach ($res_without_interests as $element){
+                        if (!in_array($element, $final))
+                            $final[] = $element;
+                    }
+
+                    foreach ($final as $element){
+                        $data = self::info(array('id' => $element));
+                        if ($data['response']['state'] === 'true'){
+                            $suggestions[] = $data['data'];
+                        }
+                    }
+                    if (count($suggestions) > 0)
+                        $res = Config::response($res, 'data', $suggestions);
+                }
+                return ($res);
+                return ;
+            }
+            return (Config::response($res, 'response/message', 'no data'));
+        }
+
+        private function filter_interests($user_id, $other_id){
+            $query = "SELECT id as 'user_id', username FROM tbl_users WHERE id IN (SELECT tbl_users.id as 'user_id' FROM tbl_users, tbl_interests, tbl_user_interests WHERE tbl_users.id = tbl_user_interests.user_id AND tbl_user_interests.interest_id = tbl_interests.id AND tbl_interests.id IN (SELECT tbl_interests.id FROM tbl_users, tbl_interests, tbl_user_interests WHERE tbl_users.id = tbl_user_interests.user_id AND tbl_user_interests.interest_id = tbl_interests.id AND tbl_users.id = $user_id)) AND id = $other_id;";
+            
+            if (($data = parent::rawQuery($query, true))){
+                $data = (object)$data;
+                if ($data->rowCount > 0){
+                    $data = $data->rows[0];
+                    return ($data);
+                }
+            }
+            return (false);
+        }
+
+        private function filter_sex($gender, $sexual_preference, $otheruser_gender){
+            if ($sexual_preference == 'male'){
+                if ($otheruser_gender == 'male' || $otheruser_gender == 'none')
+                    return (true);
+                else
+                    return (false);
+            }
+            else if ($sexual_preference == 'female'){
+                if ($otheruser_gender == 'female' || $otheruser_gender == 'none')
+                    return (true);
+                else
+                    return (false);
+            }
+            else{
+                return (true);
+            }
+        }
+
+        private function age_match($user_id, $user_dob, $id, $age){
+            $query = "SELECT username, id FROM `tbl_users` WHERE date_of_birth BETWEEN DATE_ADD('2017-11-23', INTERVAL -$age YEAR) AND DATE_ADD('2017-11-23', INTERVAL $age YEAR) AND id = $id AND id != $user_id;";
+            //$query = "SELECT username, id FROM `tbl_users` WHERE date_of_birth BETWEEN DATE_ADD('$user_dob', INTERVAL -$age YEAR) AND DATE_ADD('$user_dob', INTERVAL $age YEAR);";
+            
+            if (($data = parent::rawQuery($query, true))){
+                $data = (object)$data;
+                if ($data->rowCount > 0){
+                    $data = $data->rows;
+                    return ($data);
+                }
+            }
+            return (false);
+        }
+
+        private function city($id, $address){
+            if ($address){
+                $tmp = explode(',', $address);
+                if (count($tmp) > 0){
+                    foreach ($tmp as $element){
+                        if (($city = is_city($element)))
+                            return ($city);
+                    }
+
+                    if (isset($tmp[count($tmp) - 1]))
+                        return ($tmp[count($tmp) - 1]);
+                }
+            }else{
+                if (($locations = parent::select('tbl_user_locations', array('user_id', '=', $id), 'ORDER BY date_created DESC LIMIT 1', true))){
+                    if ($locations->rowCount > 0){
+                        $locations = (object)$locations->rows[0];
+                        $location = (object)json_decode(html_entity_decode($locations->location), true);
+                        $ret = array();
+                        if (isset($location->time_zone)){
+                            $tmp = explode('/', $location->time_zone);
+                            if (count($tmp) > 1)
+                                $ret[] = $tmp[1];
+                            else
+                                $ret[] = $tmp[0];
+                        }
+                        if (isset($location->country_name))
+                            $ret[] = $location->country_name;
+                        
+                        if (count($ret) > 0){
+                            foreach ($ret as $element){
+                                if (($city = is_city($element)))
+                                    return ($city);
+                            }
+                            return ($ret[0]);
+                        }
+                    }
+                }
+            }
+            return (false);
         }
     }
 ?>

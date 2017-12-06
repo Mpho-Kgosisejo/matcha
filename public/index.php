@@ -33,8 +33,6 @@
 
     $app->get('/profile', function (Request $request, Response $response) {
         $input = ft_escape_array($request->getParsedBody());
-        //$input['username'] = 'mkgosisejo';
-        //$input['session'] = 'URTAXLQRHE4F96ISAY79SHjfkBcUGsRAkLahx09eFeUPkCIVAQ5txpIR0VMGnDgIpr0Wraa7o4WJGEEhuKK1';
 
         if (isset($input['username'])){
             $db = new Database();
@@ -100,12 +98,10 @@
                             }
                             
                             $data['visits'] = User::visits($viewed_user->id);
-                            /*$query = "SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = $viewed_user->id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history";
-                            if (($views = Database::rawQuery($query, true))){
-                                $views = (object)$views;
-                                $views = (object)$views->rows[0];
-                                $data['visits'] =  number_format($views->count, 2, '.', '');
-                            }*/
+                            if (($visit_data = User::get_visits($viewed_user->id)))
+                                $data['visits_data'] = $visit_data;
+                            if (($likes = User::get_likes($viewed_user->id)))
+                                $data['likes_data'] = $likes;
                         }
                     }
 
@@ -135,6 +131,7 @@
 
     $app->get('/info', function (Request $request, Response $response){
         $input = ft_escape_array($request->getParsedBody());
+        //$input['session'] = '8ZJm6D3WrBFTyktNzcUqIFcPxFH0Q3vY2fk8So4k0Kdz4HmETh4CWhruW8uMc0Lef6n8vstwcH5horViI0UF';
 
         if (isset($input['session'])){
             $res = User::info(array('token' => $input['session']));
@@ -163,6 +160,14 @@
         if ($input['isSession'] == 1){
             if (isset($input['session'])){
                 $res = User::info(array('token' => $input['session']));
+                if ($res['response']['state'] == 'true'){
+                    $sugg = User::get_suggestions($input['session']);
+                    if ($sugg['response']['state'] == 'true'){
+                        $sugg = $sugg['data'];
+                        $data = array_merge($res['data'], array('suggestions' => $sugg));
+                        $res['data'] = $data;
+                    }
+                }
                 echo json_encode($res);
             }
         }
@@ -430,7 +435,8 @@
         //$input['location'] = "Maf";
         
         if (isset($input['session']) && isset($input['location'])){
-            if (($user = (object)User::info(array('token' => $input['session'])))){
+            if (($user = User::info(array('token' => $input['session'])))){
+                $user = (object)$user;
                 if ($user->response['state'] == 'true'){
                     $user = (object)$user->data;
                     $res = User::track($user->id, $input['location']);
@@ -462,6 +468,71 @@
                 $res = User::changepassword($user->username, $input['oldp'], $input['newp']);
                 echo json_encode($res);
             }
+        }else
+            echo '{}';
+    });
+
+    $app->get('/get-visits', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        new Database();
+         
+        if (isset($input['session'])){
+            $user = (object)User::info(array('token' => $input['session']));
+            if ($user->response['state'] == 'true'){
+                $user = (object)$user->data;
+
+                $data = User::get_visits($user->id);
+                if (!$data){
+                    echo json_encode(Config::response($res, 'response/message', 'no data'));
+                    return ;
+                }
+                $res = Config::response($res, 'response/state', 'true');
+                $res = Config::response($res, 'response/message', 'success');
+                $res = Config::response($res, 'data', $data);
+                echo json_encode($res);
+                return ;
+            }
+            echo json_encode(Config::response($res, 'response/message', 'no data'));
+        }else
+            echo '{}';
+    });
+
+    $app->get('/get-likes', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        $res = Config::get('response_format');
+        new Database();
+         
+        if (isset($input['session'])){
+            $user = (object)User::info(array('token' => $input['session']));
+            if ($user->response['state'] == 'true'){
+                $user = (object)$user->data;
+
+                $data = User::get_likes($user->id);
+                if (!$data){
+                    echo json_encode(Config::response($res, 'response/message', 'no data'));
+                    return ;
+                }
+                $res = Config::response($res, 'response/state', 'true');
+                $res = Config::response($res, 'response/message', 'success');
+                $res = Config::response($res, 'data', $data);
+                echo json_encode($res);
+                return ;
+            }
+            echo json_encode(Config::response($res, 'response/message', 'no data'));
+        }else
+            echo '{}';
+    });
+    
+    $app->get('/get-suggestions', function(Request $request, Response $response){
+        //$input = ft_escape_array($request->getParsedBody());
+        $input['session'] = '8ZJm6D3WrBFTyktNzcUqIFcPxFH0Q3vY2fk8So4k0Kdz4HmETh4CWhruW8uMc0Lef6n8vstwcH5horViI0UF';
+        //$input['session'] = 'ncQFCiHOz7hqAkwueTcGFLkNGOc15aStnJ9Z2QNBY52zpy3Drgk72EUIt7KziC2FmcEo2sZ0y2zXBDA2UVaW';
+        $res = Config::get('response_format');
+        new Database();
+         
+        if (isset($input['session'])){
+            $res = User::get_suggestions($input['session']);
+            echo json_encode($res);
         }else
             echo '{}';
     });
