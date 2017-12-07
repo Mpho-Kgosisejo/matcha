@@ -3,7 +3,7 @@
     use \Psr\Http\Message\ResponseInterface as Response;
 
     header('Access-Control-Allow-Origin: *');
-    /* *
+    /* */
     header('Access-Control-Allow-Methods: *');
     header('Content-Type: application/json');
     /* */
@@ -102,6 +102,10 @@
                                 $data['visits_data'] = $visit_data;
                             if (($likes = User::get_likes($viewed_user->id)))
                                 $data['likes_data'] = $likes;
+
+                            $tags = User::tags($viewed_user->id);
+                            if (isset($tags['response']) && $tags['response']['state'] == 'true')
+                                $data['tags'] = $tags['data'];
                         }
                     }
 
@@ -155,16 +159,28 @@
     $app->post('/login', function (Request $request, Response $response){
         $input = ft_escape_array($request->getParsedBody());
 
+
         if (!isset($input['isSession']))
             echo '{}';
         if ($input['isSession'] == 1){
             if (isset($input['session'])){
                 $res = User::info(array('token' => $input['session']));
-                if ($res['response']['state'] == 'true'){
+                
+                if (isset($res['response'])){
                     $sugg = User::get_suggestions($input['session']);
-                    if ($sugg['response']['state'] == 'true'){
-                        $sugg = $sugg['data'];
-                        $data = array_merge($res['data'], array('suggestions' => $sugg));
+                    //if ($sugg['response']['state'] == 'true'){
+                    if (isset($sugg['response'])){
+                        
+                        
+                        $suggestions = array();
+                        $suggestions['suggestions'] = array(
+                            'message' => $sugg['response']['message'],
+                            'data' => $sugg['data']
+                        );
+                        $data = array_merge($res['data'], $suggestions);
+
+                        //$sugg = $sugg['data'];
+                        //$data = array_merge($res['data'], array('suggestions' => $sugg));
                         $res['data'] = $data;
                     }
                 }
@@ -524,15 +540,30 @@
     });
     
     $app->get('/get-suggestions', function(Request $request, Response $response){
-        //$input = ft_escape_array($request->getParsedBody());
-        $input['session'] = '8ZJm6D3WrBFTyktNzcUqIFcPxFH0Q3vY2fk8So4k0Kdz4HmETh4CWhruW8uMc0Lef6n8vstwcH5horViI0UF';
-        //$input['session'] = 'ncQFCiHOz7hqAkwueTcGFLkNGOc15aStnJ9Z2QNBY52zpy3Drgk72EUIt7KziC2FmcEo2sZ0y2zXBDA2UVaW';
+        $input = ft_escape_array($request->getParsedBody());
         $res = Config::get('response_format');
         new Database();
          
         if (isset($input['session'])){
             $res = User::get_suggestions($input['session']);
             echo json_encode($res);
+        }else
+            echo '{}';
+    });
+
+    $app->post('/advanced-search', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        //$input['session'] = 'pLd2VjN5gsDT5brXTcVfkyFxeiIDYg0n1epXxd2OFFHLR9ILmE1GdGerYX5Wd5kfjKcQXfEDVmoNw7ySMAzZ';
+        //$input['age_min'] = 0;
+
+        if (isset($input['session'])){
+            $user = (object)User::info(array('token' => $input['session']));
+            if (isset($user->response['state']) && $user->response['state'] == 'true'){
+                $res = Friends::advanced_search($input);
+                echo json_encode($res);
+                return ;
+            }
+            echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'no data'));
         }else
             echo '{}';
     });

@@ -45,6 +45,68 @@
             return (Config::response($res, 'response/message', $error));
         }
 
+        public function advanced_search($input){
+            $res = Config::get('response_format');
+            $age_min = self::ages(true);
+            $age_max = self::ages(false);
+            $fame_min = self::fames(true);
+            $fame_max = self::fames(false);
+            $sort = "ASC";
+            $order_by = "age";
+            $location = '';
+            
+            if (isset($input['age_min']) && $input['age_min'])
+                $age_min = $input['age_min'];
+            if (isset($input['age_max']) && $input['age_max'])
+                $age_max = $input['age_max'];
+            if (isset($input['fame_min']) && $input['fame_min'])
+                $fame_min = $input['fame_min'];
+            if (isset($input['fame_max']) && $input['fame_max'])
+                $fame_max = $input['fame_max'];
+            
+            if (isset($input['sort_by'])){
+                if ($input['sort_by'] === 'ASC' || $input['sort_by'] == 'DESC')
+                    $sort = $input['sort_by'];
+            }
+            if (isset($input['order_by'])){
+                if ($input['order_by'] === 'age' || $input['order_by'] === 'fame' || $input['order_by'] === 'location' || $input['order_by'] === 'tags')
+                    $order_by = $input['order_by'];
+            }
+            if (isset($input['location']))
+                $location = $input['location'];
+
+            //age
+            //SELECT id FROM tbl_users WHERE ((COALESCE(DATE_FORMAT(FROM_DAYS(TO_DAYS(NOW())-TO_DAYS(tbl_users.date_of_birth)), '%Y')+0, 0)) >= 1 AND (COALESCE(DATE_FORMAT(FROM_DAYS(TO_DAYS(NOW())-TO_DAYS(tbl_users.date_of_birth)), '%Y')+0, 0)) <= 99) AND address LIKE "%%"
+            //fame
+            //SELECT id as 'user_id' FROM tbl_users tbl WHERE ((SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = tbl.id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history) >= 3 AND (SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = tbl.id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history) <= 50) AND address LIKE "%%"
+
+            $query = "SELECT (SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = tbl.id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history) as 'fame', id as 'user_id', (COALESCE(DATE_FORMAT(FROM_DAYS(TO_DAYS(NOW())-TO_DAYS(tbl.date_of_birth)), '%Y')+0, 0)) as 'age' FROM tbl_users tbl WHERE ((SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = tbl.id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history) >= $fame_min AND (SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = tbl.id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history) <= $fame_max) AND ((COALESCE(DATE_FORMAT(FROM_DAYS(TO_DAYS(NOW())-TO_DAYS(tbl.date_of_birth)), '%Y')+0, 0)) >= $age_min AND (COALESCE(DATE_FORMAT(FROM_DAYS(TO_DAYS(NOW())-TO_DAYS(tbl.date_of_birth)), '%Y')+0, 0)) <= $age_max) AND address LIKE '%$location%' ORDER BY $order_by $sort;";
+            //echo "<h3>$query</h3>";
+            if (($data = parent::rawQuery($query, true))){
+                $data = (object)$data;
+                if ($data->rowCount){
+                    $data = $data->rows;
+                    $user_data = array();
+
+                    foreach ($data as $user){
+                        $info = User::info(array('id' => $user['user_id']));
+                        if (isset($info['response']) && $info['response']['state'] === 'true'){
+                            $user_data[] = $info['data'];
+                        }
+                    }
+
+                    if (count($user_data) > 0){
+                        $res = Config::response($res, 'response/state', 'true');
+                        $res = Config::response($res, 'response/message', 'Search success');
+                        $res = Config::response($res, 'data', $user_data);
+                        return ($res);
+                    }
+                }
+            }            
+            //echo "$age_min - $age_max; $fame_min - $fame_max; $order_by - $sort<br>";
+            return (Config::response($res, 'response/message', 'no data'));
+        }
+
         public function invite($user_session, $to_id){
             $error = 'Could not invite user.';
             $res = Config::get('response_format');
@@ -222,6 +284,36 @@
                 );
             }
             return (Config::response($res, 'response/message', $error));
+        }
+
+        private function ages($min = true){
+            $query = "SELECT id, COALESCE(DATE_FORMAT(FROM_DAYS(TO_DAYS(NOW())-TO_DAYS(tbl_users.date_of_birth)), '%Y')+0, 0) AS 'age' FROM tbl_users ORDER BY age ASC;";
+
+            if (($data = parent::rawQuery($query, true))){
+                $data = (object)$data;
+                if ($data->rowCount){
+                    $data = $data->rows;
+                    if ($min)
+                        return ($data[0]['age']);
+                    return ($data[count($data) - 1]['age']);
+                }
+            }
+            return (0);
+        }
+
+        private function fames($min = true){
+            $query = "SELECT username, id as 'user_id', (SELECT COALESCE(((SELECT COUNT(tbl_user_history.id) FROM tbl_user_history WHERE tbl_user_history.user_id_to = user_id) / COUNT(tbl_user_history.id)) * 100, 0) as 'count' FROM tbl_user_history) as 'fame' FROM tbl_users ORDER BY fame ASC;";
+
+            if (($data = parent::rawQuery($query, true))){
+                $data = (object)$data;
+                if ($data->rowCount){
+                    $data = $data->rows;
+                    if ($min)
+                        return (number_format($data[0]['fame'], 2, '.', ''));
+                    return (number_format($data[count($data) - 1]['fame'], 2, '.', ''));
+                }
+            }
+            return (0);
         }
     }
 ?>

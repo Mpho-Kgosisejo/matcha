@@ -48,8 +48,12 @@
                     }
 
                     $tags = self::tags($_data['id']);
-                    if ($tags['response']['state'] == 'true')
+                    if (isset($tags['response']) && $tags['response']['state'] == 'true')
                         $_data['tags'] = $tags['data'];
+                    
+                    $fame = self::visits($_data['id']);
+                    if ($fame)
+                        $_data['visits'] = (double)$fame;
 
                     $res = Config::response($res, 'response/state', 'true');
                     $res = Config::response($res, 'response/message', 'success');
@@ -496,7 +500,7 @@
             if (($views = parent::rawQuery($query, true))){
                 $views = (object)$views;
                 $views = (object)$views->rows[0];
-                return (number_format($views->count, 2, '.', ''));
+                return (number_format(trim($views->count), 2, '.', ''));
             }
             return (0);
         }
@@ -565,7 +569,9 @@
                                         $element = (object)$element;
                                         if (($other_user = self::age_match($id, $user->date_of_birth, $element->user_id, 5))){
                                             if (self::filter_sex($user->gender, $user->sexual_preference, $element->gender)){
-                                                $matched_users[] = $element->user_id;
+                                                if (!in_array($element->user_id, $matched_users)){
+                                                    $matched_users[] = $element->user_id;
+                                                }
                                             }
                                         }
                                     }
@@ -600,6 +606,8 @@
         }
 
         public function get_suggestions($session){
+            $res = Config::get('response_format');
+
             $user = (object)self::info(array('token' => $session));
             if (isset($user->response) && $user->response['state'] == 'true'){
                 $user = (object)$user->data;
@@ -612,10 +620,11 @@
                     
                     if ($res_with_interests['response']['state'] == 'true')
                         $final = $res_with_interests['data'];
-                    
+                        
                     foreach ($res_without_interests as $element){
-                        if (!in_array($element, $final))
+                        if (!in_array($element, $final)){
                             $final[] = $element;
+                        }
                     }
 
                     foreach ($final as $element){
@@ -665,7 +674,7 @@
         }
 
         private function age_match($user_id, $user_dob, $id, $age){
-            $query = "SELECT username, id FROM `tbl_users` WHERE date_of_birth BETWEEN DATE_ADD('2017-11-23', INTERVAL -$age YEAR) AND DATE_ADD('2017-11-23', INTERVAL $age YEAR) AND id = $id AND id != $user_id;";
+            $query = "SELECT username, id FROM `tbl_users` WHERE date_of_birth BETWEEN DATE_ADD('$user_dob', INTERVAL -$age YEAR) AND DATE_ADD('$user_dob', INTERVAL $age YEAR) AND id = $id AND id != $user_id;";
             //$query = "SELECT username, id FROM `tbl_users` WHERE date_of_birth BETWEEN DATE_ADD('$user_dob', INTERVAL -$age YEAR) AND DATE_ADD('$user_dob', INTERVAL $age YEAR);";
             
             if (($data = parent::rawQuery($query, true))){
