@@ -8,7 +8,7 @@
         ),
         'app' => array(
             //NB*! url without "http://"
-            'url' => '127.0.0.1:8080/matcha',
+            'url' => '127.0.0.1:8080/matcha-backend',
             'name' => 'Matcha',
             'email' => '',
             'email_password' => '',
