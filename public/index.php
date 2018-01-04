@@ -568,5 +568,36 @@
             echo '{}';
     });
 
+    $app->post('/generate-user-token', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        //$input['session'] = '7RfYgKbvKt4ie8u5AFKut4jm7GcKU4O2V30cOcIzGMSUUm0v1KZvPiSWZ4GT8uV4yWgn9YWPKOKFbKadvaIk';
+        //$input['new_email'] = 'test@host.com';
+
+        if (isset($input['session']) && isset($input['new_email'])){
+            $user = (object)User::info(array('token' => $input['session']));
+            if (isset($user->response['state']) && $user->response['state'] == 'true'){
+                echo json_encode(User::generate_new_token($user->data['id'], $user->data['username'], $input['new_email']));
+                return ;
+            }
+        }else
+            echo '{}';
+    });
+
+    $app->post('/change-email', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        /*$input['session'] = '7RfYgKbvKt4ie8u5AFKut4jm7GcKU4O2V30cOcIzGMSUUm0v1KZvPiSWZ4GT8uV4yWgn9YWPKOKFbKadvaIk';
+        $input['token'] = 'gRRQ9w';
+        $input['new_email'] = 'test@host.com';*/
+
+        if (isset($input['session']) && isset($input['token']) && isset($input['new_email'])){
+            $user = (object)User::info(array('token' => $input['session']));
+            if (isset($user->response['state']) && $user->response['state'] == 'true'){
+                echo json_encode(User::change_email($user->data['id'], $input['token'], $input['new_email']));
+                return ;
+            }
+        }else
+            echo '{}';
+    });
+
     $app->run();
 ?>

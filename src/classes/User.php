@@ -642,6 +642,63 @@
             return (Config::response($res, 'response/message', 'no data'));
         }
 
+        public function generate_new_token($user_id, $username, $new_email){
+            $res = Config::get('response_format');
+            new Database();
+            $where = array(
+                'email', '=', $new_email
+            );
+
+            if (($user = parent::select('tbl_users', $where, null, true))){
+                if (!$user->rows){
+                    $token = Hash::unique_key(6);
+                    $input = array(
+                        'token' => $token
+                    );
+
+                    if (ft_sendmail($new_email, '', 'Verification Token', ft_ms_verify_token($username, $token))){
+                        $where = array(
+                            'id', '=', $user_id
+                        );
+                        if (parent::update('tbl_users', $input, $where)){
+                            $res = Config::response($res, 'response/state', 'true');
+                            return (Config::response($res, 'response/message', 'Sccess'));
+                        }
+                    }else
+                        return (Config::response($res, 'response/message', 'Could not send verification token'));
+                }else
+                    return (Config::response($res, 'response/message', 'Email already registered'));
+            }
+            return (Config::response($res, 'response/message', 'Could not generate new token'));
+        }
+
+        public function change_email($user_id, $token, $new_email){
+            $res = Config::get('response_format');
+            new Database();
+            $where = array(
+                'id', '=', $user_id
+            );
+
+            if (($user = parent::select('tbl_users', $where, null, true))){
+                if ($user->rows){
+                    $user = (object)$user->rows[0];
+                    if ($user->token === $token){
+                        $input = array(
+                            'email' => $new_email,
+                            'token' => ''
+                        );
+
+                        if (parent::update('tbl_users', $input, $where)){
+                            $res = Config::response($res, 'response/state', 'true');
+                            return (Config::response($res, 'response/message', 'Sccess'));
+                        }
+                    }else
+                        return (Config::response($res, 'response/message', 'User tokens do not match'));            
+                }
+            }
+            return (Config::response($res, 'response/message', 'Could not change email'));
+        }
+
         private function filter_interests($user_id, $other_id){
             $query = "SELECT id as 'user_id', username FROM tbl_users WHERE id IN (SELECT tbl_users.id as 'user_id' FROM tbl_users, tbl_interests, tbl_user_interests WHERE tbl_users.id = tbl_user_interests.user_id AND tbl_user_interests.interest_id = tbl_interests.id AND tbl_interests.id IN (SELECT tbl_interests.id FROM tbl_users, tbl_interests, tbl_user_interests WHERE tbl_users.id = tbl_user_interests.user_id AND tbl_user_interests.interest_id = tbl_interests.id AND tbl_users.id = $user_id)) AND id = $other_id;";
             
