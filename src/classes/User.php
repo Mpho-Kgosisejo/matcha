@@ -159,7 +159,7 @@
             $token = Hash::unique_key(10);
             
             if (!ft_sendmail($email, ucwords($fn . ' ' . $ln), Config::get('app/name') . " - Registration Confirmation", ft_ms_register(ucwords($fn . ' ' . $ln), $token))){
-                return (Config::response($res, 'response/message', 'could not email registration confirmation, please try again'));
+                return (Config::response($res, 'response/message', 'could not email confirmation, please try again'));
             }
 
             $salt = Hash::salt(15);

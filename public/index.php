@@ -568,16 +568,32 @@
             echo '{}';
     });
 
-    $app->post('/generate-user-token', function(Request $request, Response $response){
-        $input = ft_escape_array($request->getParsedBody());
-        //$input['session'] = '7RfYgKbvKt4ie8u5AFKut4jm7GcKU4O2V30cOcIzGMSUUm0v1KZvPiSWZ4GT8uV4yWgn9YWPKOKFbKadvaIk';
-        //$input['new_email'] = 'test@host.com';
+    $app->get('/generate-user-token', function(Request $request, Response $response){
+        //$input = ft_escape_array($request->getParsedBody());
+        $input['session'] = '';
+        $input['new_email'] = 'mpho.kgosisejo@hotmail.com';
 
         if (isset($input['session']) && isset($input['new_email'])){
-            $user = (object)User::info(array('token' => $input['session']));
-            if (isset($user->response['state']) && $user->response['state'] == 'true'){
-                echo json_encode(User::generate_new_token($user->data['id'], $user->data['username'], $input['new_email']));
-                return ;
+            if (empty($input['session'])){
+                $db = new Database();
+                $where = array(
+                    'email', '=', $input['new_email']
+                );
+                
+                if (($user = $db->select('tbl_users', $where, null, true))){
+                    if ($user->rowCount){
+                        $user = (object)$user->rows[0];
+                        echo json_encode(User::generate_new_token($user->id, $user->username, $user->email));
+                    }else
+                        echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Email was not found'));
+                }else
+                    echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Error looking up email'));
+            }else{
+                $user = (object)User::info(array('token' => $input['session']));
+                if (isset($user->response['state']) && $user->response['state'] == 'true'){
+                    echo json_encode(User::generate_new_token($user->data['id'], $user->data['username'], $input['new_email']));
+                    return ;
+                }
             }
         }else
             echo '{}';
