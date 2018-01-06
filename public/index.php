@@ -568,10 +568,10 @@
             echo '{}';
     });
 
-    $app->get('/generate-user-token', function(Request $request, Response $response){
-        //$input = ft_escape_array($request->getParsedBody());
-        $input['session'] = '';
-        $input['new_email'] = 'mpho.kgosisejo@hotmail.com';
+    $app->post('/generate-user-token', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        //$input['session'] = '';
+        //$input['new_email'] = 'mpho.kgosisejo@hotmail.com';
 
         if (isset($input['session']) && isset($input['new_email'])){
             if (empty($input['session'])){
@@ -583,7 +583,7 @@
                 if (($user = $db->select('tbl_users', $where, null, true))){
                     if ($user->rowCount){
                         $user = (object)$user->rows[0];
-                        echo json_encode(User::generate_new_token($user->id, $user->username, $user->email));
+                        echo json_encode(User::generate_new_token($user->id, $user->username, $user->email, 1));
                     }else
                         echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Email was not found'));
                 }else
@@ -611,6 +611,40 @@
                 echo json_encode(User::change_email($user->data['id'], $input['token'], $input['new_email']));
                 return ;
             }
+        }else
+            echo '{}';
+    });
+
+    $app->post('/verify-token-forgotpassword', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        $db = new Database();
+        //$input['token'] = 'nK2PUw';
+        //$input['email'] = 'mpho.kgosisejo@hotmail.com';
+
+        if (isset($input['token']) && isset($input['email'])){
+            $where = array(
+                'email', '=', $input['email']
+            );
+
+            if (($data = $db->select('tbl_users', $where, null, true))){
+                if ($data->rowCount){
+                    $user = (object)$data->rows[0];
+                    
+                    if ($user->token === $input['token']){
+                        $data = array(
+                            'token' => $input['token'],
+                            'email' => $input['email']
+                        );
+
+                        $res = Config::response(Config::get('response_format'), 'response/state', 'true');
+                        $res = Config::response($res, 'response/message', 'Tokens do not match');
+                        echo json_encode(Config::response($res, 'data', $data));
+                    }else
+                        echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Tokens do not match'));
+                }else
+                    echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Email: "'. $input['email'] .'", is not registered'));
+            }else
+                echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Error looking up info'));
         }else
             echo '{}';
     });

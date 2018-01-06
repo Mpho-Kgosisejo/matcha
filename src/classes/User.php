@@ -642,32 +642,52 @@
             return (Config::response($res, 'response/message', 'no data'));
         }
 
-        public function generate_new_token($user_id, $username, $new_email){
+        public function generate_new_token($user_id, $username, $new_email, $is_forgotpassword = 0){
             $res = Config::get('response_format');
             new Database();
             $where = array(
                 'email', '=', $new_email
             );
 
-            if (($user = parent::select('tbl_users', $where, null, true))){
-                if (!$user->rows){
-                    $token = Hash::unique_key(6);
-                    $input = array(
-                        'token' => $token
+            if ($is_forgotpassword){
+                $token = Hash::unique_key(6);
+                $input = array(
+                    'token' => $token
+                );
+
+                if (ft_sendmail($new_email, '', 'Forgot Password Verification Token', ft_ms_verify_token($username, $token))){
+                    $where = array(
+                        'id', '=', $user_id
                     );
 
-                    if (ft_sendmail($new_email, '', 'Verification Token', ft_ms_verify_token($username, $token))){
-                        $where = array(
-                            'id', '=', $user_id
-                        );
-                        if (parent::update('tbl_users', $input, $where)){
-                            $res = Config::response($res, 'response/state', 'true');
-                            return (Config::response($res, 'response/message', 'Sccess'));
-                        }
-                    }else
-                        return (Config::response($res, 'response/message', 'Could not send verification token'));
+                    if (parent::update('tbl_users', $input, $where)){
+                        $res = Config::response($res, 'response/state', 'true');
+                        return (Config::response($res, 'response/message', 'Sccess'));
+                    }
                 }else
-                    return (Config::response($res, 'response/message', 'Email already registered'));
+                    return (Config::response($res, 'response/message', 'Could not send verification token'));
+            }else{
+                if (($user = parent::select('tbl_users', $where, null, true))){
+                    if (!$user->rows){
+                        $token = Hash::unique_key(6);
+                        $input = array(
+                            'token' => $token
+                        );
+
+                        if (ft_sendmail($new_email, '', 'Verification Token', ft_ms_verify_token($username, $token))){
+                            $where = array(
+                                'id', '=', $user_id
+                            );
+                            
+                            if (parent::update('tbl_users', $input, $where)){
+                                $res = Config::response($res, 'response/state', 'true');
+                                return (Config::response($res, 'response/message', 'Sccess'));
+                            }
+                        }else
+                            return (Config::response($res, 'response/message', 'Could not send verification token'));
+                    }else
+                        return (Config::response($res, 'response/message', 'Email already registered'));
+                }
             }
             return (Config::response($res, 'response/message', 'Could not generate new token'));
         }
