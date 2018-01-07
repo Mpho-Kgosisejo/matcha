@@ -259,6 +259,11 @@
                                     $d['profile_url'] = $data_imgs->url;
                                 }
                             }
+                            
+                            $block = User::is_blocked($user_from_info->id, $d['user_id'], 1);
+                            if (isset($block['response']) && $block['response']['state'] == 'true'){
+                                $d['bloked_user'] = 'true';
+                            }
                             $new_data[] = $d;
                         }
 
@@ -278,10 +283,63 @@
             $res = Config::get('response_format');
 
             if (($data = User::info(array('token' => $session)))){
-                print_r($data);
-                echo $session.' - '.$id;
-                $where = array(
-                );
+                if (isset($data['response']) && $data['response']['state'] === 'true'){
+                    $user = (object)$data['data'];
+                    $where = array(
+                        'user_id_from', '=', $user->id,
+                        'AND',
+                        'user_id_to', '=', $id
+                    );
+
+                    if (($block = parent::select('tbl_user_block', $where, null, true))){
+                        if (!$block->rowCount){
+                            $input = array(
+                                'user_id_from' => $user->id,
+                                'user_id_to' => $id
+                            );
+                            if (parent::insert('tbl_user_block', $input)){
+                                $res = Config::response($res, 'response/state', 'true');
+                                $res = Config::response($res, 'data', array('blocked' => 'true'));
+                                return (Config::response($res, 'response/message', 'User successfully blocked'));
+                            }
+                        }else
+                            return (Config::response($res, 'response/message', 'User already blocked'));
+                    }
+                }
+            }
+            return (Config::response($res, 'response/message', $error));
+        }
+
+        public function unblock($session, $id){
+            $error = 'Could\' not block user, please try again in few minutes';
+            $res = Config::get('response_format');
+
+            if (($data = User::info(array('token' => $session)))){
+                if (isset($data['response']) && $data['response']['state'] === 'true'){
+                    $user = (object)$data['data'];
+                    $where = array(
+                        'user_id_from', '=', $user->id,
+                        'AND',
+                        'user_id_to', '=', $id
+                    );
+
+                    if (($block = parent::select('tbl_user_block', $where, null, true))){
+                        if ($block->rowCount){
+                            $where = array(
+                                'user_id_from', '=', $user->id,
+                                'AND',
+                                'user_id_to', '=', $id
+                            );
+
+                            parent::delete('tbl_user_report', $where);
+                            if (parent::delete('tbl_user_block', $where)){
+                                $res = Config::response($res, 'response/state', 'true');
+                                return (Config::response($res, 'response/message', 'User successfully unblocked'));
+                            }
+                        }else
+                            return (Config::response($res, 'response/message', 'You haven\'t blocked this user'));
+                    }
+                }
             }
             return (Config::response($res, 'response/message', $error));
         }

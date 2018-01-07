@@ -630,6 +630,9 @@
                     foreach ($final as $element){
                         $data = self::info(array('id' => $element));
                         if ($data['response']['state'] === 'true'){
+                            $block = self::is_blocked($user->id, $data['data']['id']);
+                            if (isset($block['response']) && $block['response']['state'] == 'true')
+                                $data['data']['bloked_user'] = 'true';
                             $suggestions[] = $data['data'];
                         }
                     }
@@ -717,6 +720,68 @@
                 }
             }
             return (Config::response($res, 'response/message', 'Could not change email'));
+        }
+
+        public function report($session, $user, $report_to, $desc){
+            $res = Config::get('response_format');
+            new Database();
+
+            $report_to_user = (object)self::info(array('id' => $report_to));
+            if (isset($report_to_user->response) && $report_to_user->response['state'] == 'true'){
+                $report_to_user = (object)$report_to_user->data;
+                
+                $where = array(
+                    'user_id_from', '=', $user->id,
+                    'AND',
+                    'user_id_to', '=', $report_to_user->id
+                );
+                if (($block = parent::select('tbl_user_report', $where, null, true))){
+                    if ($block->rowCount >= 3){
+                        return (Friends::block($session, $report_to_user->id));
+                    }else{
+                        $input = array(
+                            'user_id_from' => $user->id,
+                            'user_id_to' => $report_to_user->id,
+                            'description' => $desc
+                        );
+        
+                        if (parent::insert('tbl_user_report', $input)){
+                            ft_sendmail($report_to_user->email, ucwords($report_to_user->firstname . ' ' . $report_to_user->lastname), Config::get('app/name') . " - Matcha - User Report", ft_ms_register($report_to_user->username, $user->username));
+                            $res = Config::response($res, 'response/state', 'true');
+                            return (Config::response($res, 'response/message', $report_to_user->username.' was successfully reported'));
+                        }
+                    }
+                }
+            }
+            return (Config::response($res, 'response/message', 'Could not report user at this time'));
+        }
+
+        public function is_blocked($user_id, $viewed_user_id, $rev = 0){
+            $res = Config::get('response_format');
+            new Database();
+            $where = array();
+
+            if (!$rev){
+                $where = array(
+                    'user_id_from', '=', $user_id,
+                    'AND',
+                    'user_id_to', '=', $viewed_user_id
+                );
+            }else{
+                $where = array(
+                    'user_id_from', '=', $viewed_user_id,
+                    'AND',
+                    'user_id_to', '=', $user_id
+                );
+            }
+            if (($blocked = parent::select('tbl_user_block', $where, null, true))){
+                if ($blocked->rowCount){
+                    $res = Config::response($res, 'response/state', 'true');
+                    $res = Config::response($res, 'response/message', 'User is blocked');
+                    return (Config::response($res, 'data', 'true'));
+                }
+            }
+            return (Config::response($res, 'response/message', 'Could not check if user is blocked'));
         }
 
         private function filter_interests($user_id, $other_id){

@@ -33,6 +33,8 @@
 
     $app->get('/profile', function (Request $request, Response $response) {
         $input = ft_escape_array($request->getParsedBody());
+        //$input['username'] = 'kaygoo';
+        //$input['session'] = 'SZ28FctI8N9ktW4efDIQhAScMdGEfyE7yGgeTJW1x5l01qeh4X7mx0yjefYtODAnkRBdBxf8CA9E1nV6l3sT';
 
         if (isset($input['username'])){
             $db = new Database();
@@ -106,6 +108,10 @@
                             $tags = User::tags($viewed_user->id);
                             if (isset($tags['response']) && $tags['response']['state'] == 'true')
                                 $data['tags'] = $tags['data'];
+
+                            $block = User::is_blocked($logged_user->id, $viewed_user->id);
+                            if (isset($block['response']) && $block['response']['state'] == 'true')
+                                $data['blocked_user'] = $block['data'];
                         }
                     }
 
@@ -295,8 +301,8 @@
     });
 
     $app->get('/friend-list', function(Request $request, Response $response){
-        $input = ft_escape_array($request->getParsedBody());
-        //$input['session'] = '0i2ljuJrrJPRSOeo1mJNQzvZg35scXPdgRzAli1M1QEUFTiHf1u6BZ5S3akf89to02YmlZ9nQNhwHAdWCH3d';
+        //$input = ft_escape_array($request->getParsedBody());
+        $input['session'] = 'S3vcKPR6BXG4gxVmc96332igZmGcGlCzo7L9XDfzBWDRuzdGJkKMn22npJA54cEskqCi4RRFNvxh4LYO6IAt';
 
         if (isset($input['session'])){
             $res = Friends::_list($input['session']);
@@ -305,11 +311,11 @@
             echo '{}';
     });
 
-    $app->get('/block-user', function(Request $request, Response $response){
-        //$input = ft_escape_array($request->getParsedBody());
+    $app->post('/block-user', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
         new Database();
-        $input['session'] = 'XMq6SH7pkf3zUZzT8KdlC0D2jvhfklLi7bo0TvpdLtNFsnyB7MWJMzM653lqo6Iwi6xbCXpnqd3TACuIorrb';
-        $input['username'] = 'mkgosise';
+        //$input['session'] = '7RfYgKbvKt4ie8u5AFKut4jm7GcKU4O2V30cOcIzGMSUUm0v1KZvPiSWZ4GT8uV4yWgn9YWPKOKFbKadvaIk';
+        //$input['username'] = 'mkgosise';
 
         if (isset($input['session']) && isset($input['username'])){
             $where = array(
@@ -319,6 +325,27 @@
                 if ($data->rowCount > 0){
                     $user = (object)$data->rows[0];
                     $res = Friends::block($input['session'], $user->id);
+                    echo json_encode($res);
+                }
+            }
+        }else
+            echo '{}';
+    });
+
+    $app->post('/unblock-user', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        new Database();
+        //$input['session'] = '7RfYgKbvKt4ie8u5AFKut4jm7GcKU4O2V30cOcIzGMSUUm0v1KZvPiSWZ4GT8uV4yWgn9YWPKOKFbKadvaIk';
+        //$input['username'] = 'kaygoo';
+
+        if (isset($input['session']) && isset($input['username'])){
+            $where = array(
+                'username', '=', $input['username']
+            );
+            if (($data = Database::select('tbl_users', $where, null, true))){
+                if ($data->rowCount > 0){
+                    $user = (object)$data->rows[0];
+                    $res = Friends::unblock($input['session'], $user->id);
                     echo json_encode($res);
                 }
             }
@@ -543,7 +570,8 @@
         $input = ft_escape_array($request->getParsedBody());
         $res = Config::get('response_format');
         new Database();
-         
+        //$input['session'] = 'SZ28FctI8N9ktW4efDIQhAScMdGEfyE7yGgeTJW1x5l01qeh4X7mx0yjefYtODAnkRBdBxf8CA9E1nV6l3sT';
+
         if (isset($input['session'])){
             $res = User::get_suggestions($input['session']);
             echo json_encode($res);
@@ -637,7 +665,7 @@
                         );
 
                         $res = Config::response(Config::get('response_format'), 'response/state', 'true');
-                        $res = Config::response($res, 'response/message', 'Tokens do not match');
+                        $res = Config::response($res, 'response/message', 'Success');
                         echo json_encode(Config::response($res, 'data', $data));
                     }else
                         echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Tokens do not match'));
@@ -649,5 +677,61 @@
             echo '{}';
     });
 
+    $app->post('/change-forgotpassword', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        $db = new Database();
+        /*$input['token'] = '5QAHAW';
+        $input['password'] = '123456789';
+        $input['email'] = 'mpho.kgosisejo@hotmail.com';*/
+
+        if (isset($input['token']) && isset($input['email'])){
+            $where = array(
+                'email', '=', $input['email']
+            );
+
+            if (($data = $db->select('tbl_users', $where, null, true))){
+                if ($data->rowCount){
+                    $user = (object)$data->rows[0];
+                    
+                    if ($user->token === $input['token']){
+                        $salt = Hash::salt(15);
+                        $input = array(
+                            'salt' => $salt,
+                            'password' => Hash::make($input['password'], $salt),
+                            'token' => ''
+                        );
+
+                        if ($db->update('tbl_users', $input, $where)){
+                            $res = Config::response(Config::get('response_format'), 'response/state', 'true');
+                            echo json_encode(Config::response($res, 'response/message', 'Success'));
+                        }else
+                            echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Something went wrong changing password, please try again'));    
+                    }else
+                        echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Tokens do not match'));
+                }else
+                    echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Email: "'. $input['email'] .'", is not registered'));
+            }else
+                echo json_encode(Config::response(Config::get('response_format'), 'response/message', 'Error looking up info'));
+        }else
+            echo '{}';
+    });
+    
+    $app->post('/report-user', function(Request $request, Response $response){
+        $input = ft_escape_array($request->getParsedBody());
+        //$input['session'] = '7RfYgKbvKt4ie8u5AFKut4jm7GcKU4O2V30cOcIzGMSUUm0v1KZvPiSWZ4GT8uV4yWgn9YWPKOKFbKadvaIk';
+        //$input['user_id_to'] = 2;
+        //$input['desc'] = 'rude...!';
+         
+        if (isset($input['session'])){
+            $user = (object)User::info(array('token' => $input['session']));
+            if (isset($user->response) && $user->response['state'] == 'true'){
+                $user = (object)$user->data;
+                echo json_encode(User::report($input['session'] ,$user, $input['user_id_to'], $input['desc']));
+                return ;
+            }
+        }
+        echo '{}';
+    });
+    
     $app->run();
 ?>
