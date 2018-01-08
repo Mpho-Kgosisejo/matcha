@@ -26,9 +26,30 @@
             return (self::$conn);
         }
 
-        public function rawQuery($query, $returnData = false){
+        public function server_connection(){
+            $globs = $GLOBALS['api_config']['server'];
+            $HOST = Config::get('server/host');
+            $DB_USER = Config::get('server/db_user');
+            $DB_PASSWORD =  Config::get('server/db_password');
+            $conn = false;
+
             try{
-                $stmt = self::$conn->prepare($query);
+                $conn = new PDO("mysql:host=". $HOST .";", $DB_USER, $DB_PASSWORD);
+                $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            }catch(PDOException $exc){
+                throw new Exception ("Could not connect to database");
+            }
+            return ($conn);
+        }
+
+        public function rawQuery($query, $returnData = false, $connection = false){
+            //echo "<h3>$query</h3>";
+            try{
+                $stmt = '';
+                if ($connection)
+                    $stmt = $connection->prepare($query);
+                else
+                    $stmt = self::$conn->prepare($query);
                 $stmt->execute();
 
                 if ($returnData === false)

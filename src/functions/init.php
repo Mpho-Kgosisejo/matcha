@@ -9,5 +9,5 @@
     require 'ft_ready_app_dir.php';
     require 'ft_get_age.php';
     require 'ft_is_city.php';
-    
+    require 'ft_is_response_true.php';
 ?>

@@ -238,12 +238,12 @@
             new Database();
 
             $user_from_info = User::info(array('token' => $user_session));
-            if ($user_from_info['response']['state'] === 'true'){
+            if (isset($user_from_info['response']) && $user_from_info['response']['state'] === 'true'){
                 $user_from_info = (object)$user_from_info['data'];
 
                 $query = "SELECT *, CAST(tbl_users.id AS UNSIGNED) AS 'user_id' 
                             FROM tbl_users, tbl_user_connections 
-                            WHERE (user_id_from = tbl_users.id || user_id_to = tbl_users.id) AND (user_id_from = $user_from_info->id || user_id_to = $user_from_info->id) ORDER BY username;";
+                            WHERE tbl_user_connections.status = 1 AND (user_id_from = tbl_users.id || user_id_to = tbl_users.id) AND (user_id_from = $user_from_info->id || user_id_to = $user_from_info->id) ORDER BY username;";
                 //FROM tbl_user_images WHERR tbl_user_images.id = tbl_users.id AND tbl_user_images.code = 1 AND
                 if (($data = parent::rawQuery($query, true))){
                     $data = (object)$data;

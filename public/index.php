@@ -301,8 +301,8 @@
     });
 
     $app->get('/friend-list', function(Request $request, Response $response){
-        //$input = ft_escape_array($request->getParsedBody());
-        $input['session'] = 'S3vcKPR6BXG4gxVmc96332igZmGcGlCzo7L9XDfzBWDRuzdGJkKMn22npJA54cEskqCi4RRFNvxh4LYO6IAt';
+        $input = ft_escape_array($request->getParsedBody());
+        //$input['session'] = 'SZ28FctI8N9ktW4efDIQhAScMdGEfyE7yGgeTJW1x5l01qeh4X7mx0yjefYtODAnkRBdBxf8CA9E1nV6l3sT';
 
         if (isset($input['session'])){
             $res = Friends::_list($input['session']);
@@ -731,6 +731,40 @@
             }
         }
         echo '{}';
+    });
+
+    $app->get('/setup/{action}', function(Request $request, Response $response){
+        $action = ft_escape_str($request->getAttribute('action'));
+
+        if ($action == "db")
+                echo json_encode(Setup::database());
+        else if ($action == "tables"){
+            if (ft_is_response_true($tables = Setup::tables())){
+                if (!ft_is_response_true($populate = Setup::populate_database())){
+                    echo json_encode($populate);
+                    return ;
+                }
+            }
+            echo json_encode($tables);
+        }
+        else if ($action == "re"){
+            if (ft_is_response_true($re = Setup::re())){
+                if (!ft_is_response_true($populate = Setup::populate_database())){
+                    echo json_encode($populate);
+                    return ;
+                }
+            }
+            echo json_encode($re);
+        }
+        else if ($action == "all"){
+            if (ft_is_response_true($all = Setup::all())){
+                if (!ft_is_response_true($populate = Setup::populate_database())){
+                    echo json_encode($populate);
+                    return ;
+                }
+            }
+            echo json_encode($all);
+        }
     });
     
     $app->run();
