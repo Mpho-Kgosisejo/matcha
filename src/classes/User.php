@@ -156,14 +156,16 @@
                 }
             }
 
-            $token = Hash::unique_key(10);
+            $token = Hash::unique_key(8);
+            while (self::is_token_unique($token))
+                $token = Hash::unique_key(8);
             
             if (!ft_sendmail($email, ucwords($fn . ' ' . $ln), Config::get('app/name') . " - Registration Confirmation", ft_ms_register(ucwords($fn . ' ' . $ln), $token))){
                 return (Config::response($res, 'response/message', 'could not email confirmation, please try again'));
             }
 
             $salt = Hash::salt(15);
-            
+
             $input = array(
                 'username' => strtolower($username),
                 'email' => strtolower($email),
@@ -181,6 +183,19 @@
                 return ($res);
             }
             return (Config::response($res, 'response/message', 'Could not register you at this time, please wait 5 minutes or so and try again.'));
+        }
+
+        private function is_token_unique($token){
+            new Database();
+            $where = array(
+                'token', '=', $token
+            );
+
+            if (($ret = parent::select('tbl_user_registrations', $where, null, true))){
+                if ($ret->rowCount)
+                    return (true);
+            }
+            return (false);
         }
 
         public function logout($session){
